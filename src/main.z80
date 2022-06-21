@@ -31,6 +31,18 @@ CART_EFB_CFGRXDR    equ (CART_EFB_BASE + $73)   ; EFB Flash Recieve Data
 CART_EFB_CFGIRQ     equ (CART_EFB_BASE + $74)   ; EFB Flash Interrupt Request
 CART_EFB_CFGIRQEN   equ (CART_EFB_BASE + $75)   ; EFB Flash Interrupt Request Enable
 
+; Enable WishBone connection
+EFB_FLASH_ENABLE: macro
+    ld a, (1 << CART_EFB_CFGCR_WBCE)
+    ld [CART_EFB_CFGCR], a
+endm
+
+; Disable WishBone connection
+EFB_FLASH_DISABLE: macro
+    xor a,a
+    ld [CART_EFB_CFGCR], a
+endm
+
 section "Initialisation",rom0[$0150]
 
 ; Initialisation
@@ -38,39 +50,74 @@ __main::
     di                  ; Disable interrupts
     ld sp, $FFFE        ; Initialise stack pointer
 
-	; Add code here
+	; Code to read 1 page from UFM0
 
-end:
-    halt
+    EFB_FLASH_ENABLE
 
-flash_cmd_enable_cfg:
-    db $74,$08,$00,$00
-flash_cmd_poll_status:
-    db $3C,$00,$00,$00
-flash_cmd_set_ufm0_addr:
-    db $B4,$00,$00,$00
-flash_data_ufm0_addr:
-    db $00,$01,$00,$00
-
-; Send a command to the EFB Flash
-;   hl - pointer to 4-byte command
-;        a command should look something like the following in memory
-;            $74 $08 $00 $00
-;        where the first byte is the command, followed by the 3-byte operand
-;
-;   Note: does not deassert WBCE in CART_EFB_CFGCR
-;
-;   Uses bc
-efb_flash_cmd:
     ; Enable WishBone connection
-    ld a, (1 << CART_EFB_CFGCR_WBCE)
-    ld [CART_EFB_CFGCR], a
-
-    ; Send command
+    ld hl, flash_cmd_enable
     ld d, 4
     call efb_flash_write
 
-    ret
+    EFB_FLASH_DISABLE
+
+.read_status:
+    EFB_FLASH_ENABLE
+
+    ; Read status
+    ld hl, flash_cmd_status
+    ld d, 4
+    call efb_flash_write
+    ld hl, flash_rdata_status
+    ld d, 4
+    call efb_flash_read
+
+    EFB_FLASH_DISABLE
+
+    ; Check for busy bit
+    ld a, [flash_rdata_status + 2]
+    bit 4, a
+    jp nz, .read_status
+
+    EFB_FLASH_ENABLE
+
+    ; Set UFM0 address to 0
+    ld hl, flash_cmd_set_ufm0_addr
+    ld d, 8
+    call efb_flash_write
+
+    EFB_FLASH_DISABLE
+    EFB_FLASH_ENABLE
+
+    ; Read 1 page of data
+    ld hl, flash_cmd_read_page
+    ld d, 4
+    call efb_flash_write
+    ld hl, flash_rdata_page
+    ld d, 16
+    call efb_flash_read
+
+    EFB_FLASH_DISABLE
+    EFB_FLASH_ENABLE
+
+    ; Disable WishBone connection
+    ld hl, flash_cmd_disable
+    ld d, 3
+    call efb_flash_write
+
+    EFB_FLASH_DISABLE
+    EFB_FLASH_ENABLE
+
+    ; Send NOOP (necessary after disable)
+    ld a, $FF
+    ld [CART_EFB_CFGTXDR], a
+
+    EFB_FLASH_DISABLE
+
+    ; At this point, the page data should be at flash_rdata_page
+
+end:
+    halt
 
 ; Write bytes to flash tx register
 ;   hl - pointer to data being writtten
@@ -84,3 +131,40 @@ efb_flash_write:
     
     jp nz, .copy_loop
     ret
+
+; Read bytes from flash rx register
+;   hl - pointer to writable memory to store the read data
+;   d - number of bytes to read (must be > 0)
+efb_flash_read:
+    ld bc, CART_EFB_CFGRXDR
+.copy_loop:
+    ld a, [bc]
+    ld [hl+], a
+    dec d
+    
+    jp nz, .copy_loop
+    ret
+
+section "Flash commands",rom0
+
+flash_cmd_enable:
+    db $74,$08,$00,$00
+flash_cmd_status:
+    db $3C,$00,$00,$00
+flash_cmd_set_ufm0_addr:
+    db $B4,$00,$00,$00
+    db $00,$00,$40,$00
+flash_cmd_read_page:
+    db $CA,$00,$00,$01
+flash_cmd_disable:
+    db $26,$00,$00
+
+section "Variable data",wram0
+
+union
+flash_rdata_status:
+    ds 4
+nextu
+flash_rdata_page:
+    ds 16
+endu
