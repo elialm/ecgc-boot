@@ -43,6 +43,25 @@ EFB_FLASH_DISABLE: macro
     ld [CART_EFB_CFGCR], a
 endm
 
+; Charmap for chars used in boot (very minimalistic)
+newcharmap boot
+charmap "0", $00
+charmap "1", $01
+charmap "2", $02
+charmap "3", $03
+charmap "4", $04
+charmap "5", $05
+charmap "6", $06
+charmap "7", $07
+charmap "8", $08
+charmap "9", $09
+charmap "A", $0A
+charmap "B", $0B
+charmap "C", $0C
+charmap "D", $0D
+charmap "E", $0E
+charmap "F", $0F
+
 section "Initialisation",rom0[$0150]
 
 ; Initialisation
@@ -145,42 +164,24 @@ efb_flash_read:
     jp nz, .copy_loop
     ret
 
-; Convert a byte to its 2-byte ASCII counterpart in hex
+; Convert a byte to its 2-byte text counterpart in hex using the boot charmap
 ;   d - byte to convert
 ;
-;   bc - will contain the ASCII chars, b will contain it
-;        for the upper 4 bits in a, c will contian it for
+;   bc - will contain the chars, b will contain it
+;        for the upper 4 bits in a, c will contain it for
 ;        the lower 4 bits in a
 b2hex:
+    ; Load lower 4 bits into c
     ld a, d
     or a, $0F
-    ld e, a
-
-    call .inner_convert
     ld c, a
 
+    ; Load upper 4 bits into b
     ld a, d
     swap a
     or a, $0F
-    ld e, a
-
-    call .inner_convert
     ld b, a
 
-    ret
-    
-.inner_convert:
-    ; Check if a < 0
-    sub a, 10
-    bit 7, a
-    ld a, e
-    
-    jp c, .a_is_larger
-    add a, 48   ; If digit
-    jp .after_check
-.a_is_larger:
-    add a, 55   ; If letter
-.after_check:
     ret
 
 section "Flash commands",rom0
