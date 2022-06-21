@@ -1,0 +1,62 @@
+section "Reset routine rst_00",rom0[$0000]
+__rst_00:
+    jp __start
+
+section "Reset routine rst_08",rom0[$0008]
+__rst_08:
+    jp __start
+
+section "Reset routine rst_10",rom0[$0010]
+__rst_10:
+    jp __start
+
+section "Reset routine rst_18",rom0[$0018]
+__rst_18:
+    jp __start
+
+section "Reset routine rst_20",rom0[$0020]
+__rst_20:
+    jp __start
+
+section "Reset routine rst_28",rom0[$0028]
+__rst_28:
+    jp __start
+
+section "Reset routine rst_30",rom0[$0030]
+__rst_30:
+    jp __start
+
+section "Reset routine rst_38",rom0[$0038]
+__rst_38:
+    jp __start
+
+section "V-Blank IRQ Vector",rom0[$0040]
+__vbl_vect:
+    reti
+
+section "LCD IRQ Vector",rom0[$0048]
+__lcd_vect:
+    reti
+
+section "Timer IRQ Vector",rom0[$0050]
+__timer_vect:
+    reti
+
+section "Serial IRQ Vector",rom0[$0058]
+__serial_vect:
+    reti
+
+section "Joypad  IRQ Vector",rom0[$0060]
+__joypad_vect:
+    reti
+
+section "Start addr",rom0[$0100]
+__start:
+    nop
+    jp __main
+
+section "Header",rom0[$0104]
+ds $4B, $00
+    ;   ================================
+    ;   Header data provided by rgbfix
+    ;   ================================

@@ -1,0 +1,8 @@
+# Compiled files
+*.o
+*.gb
+*.gbc
+
+# Build directories
+obj
+build

@@ -1,0 +1,13 @@
+include "hardware.inc"
+
+section "Initialisation",rom0[$0150]
+
+; Initialisation
+__main::
+    di                  ; Disable interrupts
+    ld sp, $FFFE        ; Initialise stack pointer
+
+	; Add code here
+
+end:
+    halt
