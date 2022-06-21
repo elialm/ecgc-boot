@@ -1,4 +1,5 @@
 include "hardware.inc"
+include "macros.inc"
 
 ; For EFB functions, refer to Using Hardend Control Functions MachXO3D Reference
 ; https://www.latticesemi.com/-/media/LatticeSemi/Documents/ApplicationNotes/UZ/FPGA-TN-02119-1-3-Using-Hardened-Control-Functions-MachXO3D-Reference.ashx?document_id=52704
@@ -69,71 +70,105 @@ __main::
     di                  ; Disable interrupts
     ld sp, $FFFE        ; Initialise stack pointer
 
-	; Code to read 1 page from UFM0
+    ; Disable LCD
+    ld hl, rLCDC
+    res 7, [hl]
 
-    EFB_FLASH_ENABLE
+    ; Copy chars to VRAM
+    ld hl, chars_data
+    ld a, [hl+]
+    ld e, a
+    ld a, [hl+]
+    ld d, a
+    ld b, h
+    ld c, l
+    ld hl, _VRAM
+    call memcpy_wd
 
-    ; Enable WishBone connection
-    ld hl, flash_cmd_enable
-    ld d, 4
-    call efb_flash_write
+    ; Clear logo from screen
+    xor a,a
+    ld d, 13
+    LOAD_CELL_SCRN0_HL 4,8
+    call memset
+    ld d, 12
+    LOAD_CELL_SCRN0_HL 4,9
+    call memset
 
-    EFB_FLASH_DISABLE
+    ; Write $E4 to screen
+    ld d, $E4
+    call d2hex
 
-.read_status:
-    EFB_FLASH_ENABLE
+    LOAD_CELL_SCRN0_HL 1,1
+    ld a, b
+    ld [hl+], a
+    ld [hl], c
 
-    ; Read status
-    ld hl, flash_cmd_status
-    ld d, 4
-    call efb_flash_write
-    ld hl, flash_rdata_status
-    ld d, 4
-    call efb_flash_read
 
-    EFB_FLASH_DISABLE
+; 	; Code to read 1 page from UFM0
 
-    ; Check for busy bit
-    ld a, [flash_rdata_status + 2]
-    bit 4, a
-    jp nz, .read_status
+;     EFB_FLASH_ENABLE
 
-    EFB_FLASH_ENABLE
+;     ; Enable WishBone connection
+;     ld hl, flash_cmd_enable
+;     ld d, 4
+;     call efb_flash_write
 
-    ; Set UFM0 address to 0
-    ld hl, flash_cmd_set_ufm0_addr
-    ld d, 8
-    call efb_flash_write
+;     EFB_FLASH_DISABLE
 
-    EFB_FLASH_DISABLE
-    EFB_FLASH_ENABLE
+; .read_status:
+;     EFB_FLASH_ENABLE
 
-    ; Read 1 page of data
-    ld hl, flash_cmd_read_page
-    ld d, 4
-    call efb_flash_write
-    ld hl, flash_rdata_page
-    ld d, 16
-    call efb_flash_read
+;     ; Read status
+;     ld hl, flash_cmd_status
+;     ld d, 4
+;     call efb_flash_write
+;     ld hl, flash_rdata_status
+;     ld d, 4
+;     call efb_flash_read
 
-    EFB_FLASH_DISABLE
-    EFB_FLASH_ENABLE
+;     EFB_FLASH_DISABLE
 
-    ; Disable WishBone connection
-    ld hl, flash_cmd_disable
-    ld d, 3
-    call efb_flash_write
+;     ; Check for busy bit
+;     ld a, [flash_rdata_status + 2]
+;     bit 4, a
+;     jp nz, .read_status
 
-    EFB_FLASH_DISABLE
-    EFB_FLASH_ENABLE
+;     EFB_FLASH_ENABLE
 
-    ; Send NOOP (necessary after disable)
-    ld a, $FF
-    ld [CART_EFB_CFGTXDR], a
+;     ; Set UFM0 address to 0
+;     ld hl, flash_cmd_set_ufm0_addr
+;     ld d, 8
+;     call efb_flash_write
 
-    EFB_FLASH_DISABLE
+;     EFB_FLASH_DISABLE
+;     EFB_FLASH_ENABLE
 
-    ; At this point, the page data should be at flash_rdata_page
+;     ; Read 1 page of data
+;     ld hl, flash_cmd_read_page
+;     ld d, 4
+;     call efb_flash_write
+;     ld hl, flash_rdata_page
+;     ld d, 16
+;     call efb_flash_read
+
+;     EFB_FLASH_DISABLE
+;     EFB_FLASH_ENABLE
+
+;     ; Disable WishBone connection
+;     ld hl, flash_cmd_disable
+;     ld d, 3
+;     call efb_flash_write
+
+;     EFB_FLASH_DISABLE
+;     EFB_FLASH_ENABLE
+
+;     ; Send NOOP (necessary after disable)
+;     ld a, $FF
+;     ld [CART_EFB_CFGTXDR], a
+
+;     EFB_FLASH_DISABLE
+
+;     ; At this point, the page data should be at flash_rdata_page
 
 end:
     halt
@@ -170,18 +205,49 @@ efb_flash_read:
 ;   bc - will contain the chars, b will contain it
 ;        for the upper 4 bits in a, c will contain it for
 ;        the lower 4 bits in a
-b2hex:
-    ; Load lower 4 bits into c
+d2hex:
+    ; Load lower 4 bits into c and increment
     ld a, d
-    or a, $0F
+    and a, $0F
     ld c, a
+    inc c
 
-    ; Load upper 4 bits into b
+    ; Load upper 4 bits into b and increment
     ld a, d
     swap a
-    or a, $0F
+    and a, $0F
     ld b, a
+    inc b
 
+    ret
+
+; Memory copy - copies n bytes (16 bit) from src to dest, incrementing pointer
+;   n    - [de] registers (n != 0)
+;   src  - [bc] registers
+;   dest - [hl] registers
+memcpy_wd:
+    ld a, [bc]          ; Load from src
+    ld [hl+], a         ; Copy to dest and increment pointer
+    inc bc              ; Increment src pointer
+    dec de              ; Decrement counter
+	
+    ; Compare de to 0
+    xor a,a
+    or a, e
+    jp nz, memcpy_wd    ; Keep copying if != 0
+    or a, d
+    jp nz, memcpy_wd    ; Keep copying if != 0
+
+    ret
+
+; Memory set - sets n bytes (8 bit) at dest to x, incrementing pointer
+;   n       - 'd' register (n != 0)
+;   dest    - [hl] register
+;   x       - 'a' register
+memset:
+    ld [hl+], a
+    dec d
+    jp nz, memset
     ret
 
 section "Flash commands",rom0
@@ -197,6 +263,13 @@ flash_cmd_read_page:
     db $CA,$00,$00,$01
 flash_cmd_disable:
     db $26,$00,$00
+
+; Temporary test data
+flash_rdata_page_rom:
+    db $26,$EF,$72,$DE
+    db $92,$EF,$72,$DA
+    db $26,$40,$72,$ED
+    db $2B,$00,$72,$00
 
 section "Variable data",wram0
 
