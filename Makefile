@@ -17,11 +17,11 @@ FX=rgbfix
 
 AS_FLAGS= -iinclude
 LD_FLAGS= -n $(BUILD_DIR)/$(NAME).sym -m $(BUILD_DIR)/$(NAME).map
-FX_FLAGS= -v -p 0 -C
+FX_FLAGS= -v -p 0
 
 RM=rm
 
-TARGET=$(NAME).gbc
+TARGET=$(NAME).gb
 
 .PHONY: all clean
 
