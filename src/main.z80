@@ -19,7 +19,12 @@ CART_EFB_SPIIRQ     equ (CART_EFB_BASE + $5C)   ; EFB SPI Interrupt Request
 CART_EFB_SPIIRQEN   equ (CART_EFB_BASE + $5D)   ; EFB SPI Interrupt Request Enable
 
 ; EFB Flash Registers
-CART_EFB_CFGCR      equ (CART_EFB_BASE + $70)   ; EFB Flash Control
+
+; EFB Flash Control
+CART_EFB_CFGCR      equ (CART_EFB_BASE + $70)
+CART_EFB_CFGCR_WBCE equ 7   ; WISHBONE Connection Enable
+CART_EFB_CFGCR_RSTE equ 6   ; WISHBONE Connection Reset
+
 CART_EFB_CFGTXDR    equ (CART_EFB_BASE + $71)   ; EFB Flash Transmit Data
 CART_EFB_CFGSR      equ (CART_EFB_BASE + $72)   ; EFB Flash Status
 CART_EFB_CFGRXDR    equ (CART_EFB_BASE + $73)   ; EFB Flash Recieve Data
@@ -37,3 +42,45 @@ __main::
 
 end:
     halt
+
+flash_cmd_enable_cfg:
+    db $74,$08,$00,$00
+flash_cmd_poll_status:
+    db $3C,$00,$00,$00
+flash_cmd_set_ufm0_addr:
+    db $B4,$00,$00,$00
+flash_data_ufm0_addr:
+    db $00,$01,$00,$00
+
+; Send a command to the EFB Flash
+;   hl - pointer to 4-byte command
+;        a command should look something like the following in memory
+;            $74 $08 $00 $00
+;        where the first byte is the command, followed by the 3-byte operand
+;
+;   Note: does not deassert WBCE in CART_EFB_CFGCR
+;
+;   Uses bc
+efb_flash_cmd:
+    ; Enable WishBone connection
+    ld a, (1 << CART_EFB_CFGCR_WBCE)
+    ld [CART_EFB_CFGCR], a
+
+    ; Send command
+    ld d, 4
+    call efb_flash_write
+
+    ret
+
+; Write bytes to flash tx register
+;   hl - pointer to data being writtten
+;   d - number of bytes to write (must be > 0)
+efb_flash_write:
+    ld bc, CART_EFB_CFGTXDR
+.copy_loop:
+    ld a, [hl+]
+    ld [bc], a
+    dec d
+    
+    jp nz, .copy_loop
+    ret
