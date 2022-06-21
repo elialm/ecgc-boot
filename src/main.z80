@@ -145,6 +145,44 @@ efb_flash_read:
     jp nz, .copy_loop
     ret
 
+; Convert a byte to its 2-byte ASCII counterpart in hex
+;   d - byte to convert
+;
+;   bc - will contain the ASCII chars, b will contain it
+;        for the upper 4 bits in a, c will contian it for
+;        the lower 4 bits in a
+b2hex:
+    ld a, d
+    or a, $0F
+    ld e, a
+
+    call .inner_convert
+    ld c, a
+
+    ld a, d
+    swap a
+    or a, $0F
+    ld e, a
+
+    call .inner_convert
+    ld b, a
+
+    ret
+    
+.inner_convert:
+    ; Check if a < 0
+    sub a, 10
+    bit 7, a
+    ld a, e
+    
+    jp c, .a_is_larger
+    add a, 48   ; If digit
+    jp .after_check
+.a_is_larger:
+    add a, 55   ; If letter
+.after_check:
+    ret
+
 section "Flash commands",rom0
 
 flash_cmd_enable:
