@@ -70,6 +70,10 @@ __main::
     di                  ; Disable interrupts
     ld sp, $FFFE        ; Initialise stack pointer
 
+    ld a, $01
+    ld [rIE], a         ; Enable VBL interrupt
+    ei
+
     ; Disable LCD
     ld hl, rLCDC
     res 7, [hl]
@@ -190,8 +194,9 @@ __main::
 
 ;     ; At this point, the page data should be at flash_rdata_page
 
-end:
+.frame_tick:
     halt
+    jp .frame_tick
 
 ; Write bytes to flash tx register
 ;   hl - pointer to data being writtten
