@@ -107,6 +107,14 @@ __main::
     ld [hl+], a
     ld [hl], c
 
+    ; Initialise x coord and graphic
+    ld a, $01
+    ld [x_coord], a
+    LOAD_CELL_SCRN0_HL 1,16
+    ld [hl], a
+    ld a, $06
+    ld [frame_delay], a
+
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
@@ -196,6 +204,40 @@ __main::
 
 .frame_tick:
     halt
+
+    ; Check frame delay
+    ld a, [frame_delay]
+    dec a
+    ld [frame_delay], a
+    jp nz, .frame_tick
+
+    ; Reset frame delay
+    ld a, $06
+    ld [frame_delay], a
+
+    ; Initialise screen pointer
+    ld h, $9A
+    ld a, [x_coord]
+    ld l, a
+
+    ; Check if coordinate needs to roll over
+    xor a, a
+    ld [hl], a
+    inc l
+    ld a, l
+    cp a, $13
+    jp nz, .skip_rollover
+
+    ld a, $01
+    ld l, a
+
+.skip_rollover:
+    ld [x_coord], a
+
+    ; Write char to screen
+    ld a, $01
+    ld [hl], a
+
     jp .frame_tick
 
 ; Write bytes to flash tx register
@@ -297,6 +339,11 @@ flash_rdata_page_rom:
     db $2B,$00,$72,$00
 
 section "Variable data",wram0
+
+x_coord:
+    ds 1
+frame_delay:
+    ds 1
 
 union
 flash_rdata_status:
