@@ -23,10 +23,12 @@ RM=rm
 
 TARGET=$(NAME).gb
 
-.PHONY: all clean
+.PHONY: all clean mem
 
 all: $(BUILD_DIR) $(OBJ_DIR) $(BUILD_DIR)/$(TARGET)
 	$(FX) $(FX_FLAGS) $(BUILD_DIR)/$(TARGET)
+
+mem: $(BUILD_DIR)/$(TARGET).mem
 
 $(OBJ_DIR):
 	mkdir -p $@
@@ -36,6 +38,9 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/$(TARGET): $(OBJ_FILES)
 	$(LD) $(LD_FLAGS) $^ -o $@
+
+$(BUILD_DIR)/$(TARGET).mem: $(BUILD_DIR)/$(TARGET)
+	./scripts/make_hex.sh $< $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.z80
 	$(AS) $(AS_FLAGS) $< -o $@
