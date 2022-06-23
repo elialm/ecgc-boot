@@ -26,7 +26,6 @@ TARGET=$(NAME).gb
 .PHONY: all clean mem
 
 all: $(BUILD_DIR) $(OBJ_DIR) $(BUILD_DIR)/$(TARGET)
-	$(FX) $(FX_FLAGS) $(BUILD_DIR)/$(TARGET)
 
 mem: $(BUILD_DIR)/$(TARGET).mem
 
@@ -38,6 +37,7 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/$(TARGET): $(OBJ_FILES)
 	$(LD) $(LD_FLAGS) $^ -o $@
+	$(FX) $(FX_FLAGS) $(BUILD_DIR)/$(TARGET)
 
 $(BUILD_DIR)/$(TARGET).mem: $(BUILD_DIR)/$(TARGET)
 	./scripts/make_hex.sh $< $@
