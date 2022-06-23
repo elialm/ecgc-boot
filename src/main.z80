@@ -103,6 +103,26 @@ __main::
     ld [hl+], a
     ld [hl], c
 
+    ; ; Attempt to read from EFB
+
+    ; ; Enable LCD
+    ; ld hl ,rLCDC
+    ; set 7, [hl]
+
+    ; ; Attempt to read from EFB SPI
+    ; ld a, [CART_EFB_SPICR0]
+    ; ld d, a
+    ; call d2hex
+
+    ; ; Display it on screen to show read data
+    ; ld hl, rLCDC
+    ; res 7, [hl]
+    ; LOAD_CELL_SCRN0_HL 1,2
+    ; ld a, b
+    ; ld [hl+], a
+    ; ld [hl], c
+    ; ld hl ,rLCDC
+    ; set 7, [hl]
 
 ; 	; Code to read 1 page from UFM0
 
