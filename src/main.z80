@@ -119,22 +119,44 @@ __main::
     ld hl, rLCDC
     set 7, [hl]
 
-    ; ; Attempt to read from EFB
+    ; Initialise SPI
+    xor a, a
+    ld [CART_EFB_SPICR0], a
+    ld [CART_EFB_SPICR1], a
+    ld [CART_EFB_SPICR2], a
 
-    ; ; Attempt to read from EFB SPI
-    ; ld a, [CART_EFB_SPICR0]
-    ; ld d, a
-    ; call d2hex
+    ; SPI prescaler
+    ;   53.2 MHz / 63 ~= 844.44 kHz
+    ld a, $3F
+    ld [CART_EFB_SPIBR], a
+    
+    ; Control register 2 values
+    ;   - [7] Set in master mode
+    ;   - [6] Hold CSS after transfer
+    ;   - [5] Disable Lattice proprietary SPI extension
+    ;   - [4] Reserved
+    ;   - [3] Reserved
+    ;   - [2] Active high clock
+    ;   - [1] Data is captured on a leading (first) clock edge, and propagated on the opposite clock edge
+    ;   - [0] Byte is sent MSB first
+    ld a, %11000000
+    ld [CART_EFB_SPICR2], a
 
-    ; ; Display it on screen to show read data
-    ; ld hl, rLCDC
-    ; res 7, [hl]
-    ; LOAD_CELL_SCRN0_HL 1,2
-    ; ld a, b
-    ; ld [hl+], a
-    ; ld [hl], c
-    ; ld hl ,rLCDC
-    ; set 7, [hl]
+    ; Control register 2 values
+    ;   - [7] SPI enabled
+    ;   - [6] User wake-up disabled
+    ;   - [5] Enable configuration wake-up disabled
+    ;   - [4] Reserved
+    ;   - [3] Reserved
+    ;   - [2] Reserved
+    ;   - [1] Reserved
+    ;   - [0] Reserved
+    ld a, %10000000
+    ld [CART_EFB_SPICR1], a
+
+    ; Transmit a byte
+    ld a, $55
+    ld [CART_EFB_SPITXDR], a
 
 ; 	; Code to read 1 page from UFM0
 
