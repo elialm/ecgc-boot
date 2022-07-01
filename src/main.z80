@@ -107,11 +107,9 @@ __main::
     ld [hl+], a
     ld [hl], c
 
-    ; Initialise x coord and graphic
-    ld a, $01
+    ; Initialise x coord
+    ld a, $0C
     ld [x_coord], a
-    LOAD_CELL_SCRN0_HL 1,16
-    ld [hl], a
     ld a, $06
     ld [frame_delay], a
 
@@ -250,7 +248,7 @@ __main::
     cp a, $13
     jp nz, .skip_rollover
 
-    ld a, $01
+    ld a, $0C
     ld l, a
 
 .skip_rollover:
