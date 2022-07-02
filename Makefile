@@ -38,6 +38,7 @@ $(BUILD_DIR):
 $(BUILD_DIR)/$(TARGET): $(OBJ_FILES)
 	$(LD) $(LD_FLAGS) $^ -o $@
 	$(FX) $(FX_FLAGS) $(BUILD_DIR)/$(TARGET)
+	@./scripts/calculate_usage.sh $(BUILD_DIR)/$(NAME).map
 
 $(BUILD_DIR)/$(NAME).mem: $(BUILD_DIR)/$(TARGET)
 	./scripts/make_hex.sh $< $@
