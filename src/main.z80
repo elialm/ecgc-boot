@@ -89,23 +89,23 @@ __main::
     ld hl, _VRAM
     call memcpy_wd
 
-    ; Clear logo from screen
-    xor a,a
-    ld d, 13
-    LOAD_CELL_SCRN0_HL 4,8
-    call memset
-    ld d, 12
-    LOAD_CELL_SCRN0_HL 4,9
-    call memset
+    ; Copy tile map to VRAM
+    LOAD_CELL_SCRN0_HL 0,0
+    ld bc, screen_data
+    ld e, 18
+.screen_copy:
+    ld d, 20
+    call memcpy
 
-    ; Write $E4 to screen
-    ld d, $E4
-    call d2hex
-
-    LOAD_CELL_SCRN0_HL 1,1
-    ld a, b
-    ld [hl+], a
-    ld [hl], c
+    ; Move hl to point to start of next line
+    ld a, e
+    ld de, 12
+    add hl, de
+    ld e, a
+    
+    ; Check loop counter e
+    dec e
+    jp nz, .screen_copy
 
     ; Initialise x coord
     ld a, $0C
@@ -306,6 +306,19 @@ d2hex:
     ld b, a
     inc b
 
+    ret
+
+; Memory copy - copies n bytes (8 bit) from src to dest, incrementing pointer
+;   n    - [d] registers (n != 0)
+;   src  - [bc] registers
+;   dest - [hl] registers
+memcpy:
+    ld a, [bc]          ; Load from src
+    ld [hl+], a         ; Copy to dest and increment pointer
+    inc bc              ; Increment src pointer
+    dec d               ; Decrement counter
+
+    jp nz, memcpy       ; Keep copying if != 0
     ret
 
 ; Memory copy - copies n bytes (16 bit) from src to dest, incrementing pointer
