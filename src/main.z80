@@ -113,6 +113,10 @@ __main::
     ld a, $06
     ld [frame_delay], a
 
+    ; Initialise previous button state
+    ld a, $FF
+    ld [prev_button_state], a
+
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
@@ -235,6 +239,16 @@ __main::
     ld a, $06
     ld [frame_delay], a
 
+    call update_crawl
+
+    ; Read button state
+    call read_buttons
+    ld [prev_button_state], a
+
+    jp .frame_tick
+
+; Update moving char to indicate GameBoy is functioning normally
+update_crawl:
     ; Initialise screen pointer
     ld h, $9A
     ld a, [x_coord]
@@ -258,7 +272,40 @@ __main::
     ld a, $01
     ld [hl], a
 
-    jp .frame_tick
+    ret
+
+; Read from buttons and store result in a
+;   a[7] - Start
+;   a[6] - Select
+;   a[5] - B
+;   a[4] - A
+;   a[3] - Down
+;   a[2] - Up
+;   a[1] - Left
+;   a[0] - Right
+read_buttons:
+    ld hl, rP1
+
+    ; Read from directional buttons
+    set 4, [hl]
+    ld a, [hl]
+    ld a, [hl]
+    ld a, [hl]
+    and a, $0F
+    ld b, a
+    res 4, [hl]
+
+    ; Read from action buttons
+    set 5, [hl]     
+    ld a, [hl]
+    ld a, [hl]
+    ld a, [hl]
+    and a, $0F
+    res 5, [hl]
+
+    swap a
+    or a, b
+    ret
 
 ; Write bytes to flash tx register
 ;   hl - pointer to data being writtten
@@ -376,6 +423,8 @@ section "Variable data",wram0
 x_coord:
     ds 1
 frame_delay:
+    ds 1
+prev_button_state:
     ds 1
 
 union
