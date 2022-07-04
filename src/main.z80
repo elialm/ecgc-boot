@@ -117,6 +117,11 @@ __main::
     ld a, $FF
     ld [prev_button_state], a
 
+    ; Initialise button events
+    xor a, a
+    ld [button_events], a
+    ld [button_events+1], a
+
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
@@ -241,9 +246,16 @@ __main::
 
     call update_crawl
 
-    ; Read button state
-    call read_buttons
-    ld [prev_button_state], a
+    ; ; Read button state
+    ; call read_buttons
+    ; ld [prev_button_state], a
+
+    ; Read button state and check for press/release events
+    call check_button_event
+    ld a, c
+    ld [button_events], a
+    ld a, b
+    ld [button_events+1], a
 
     jp .frame_tick
 
@@ -271,6 +283,30 @@ update_crawl:
     ; Write char to screen
     ld a, $01
     ld [hl], a
+
+    ret
+
+; Check for button events
+;   b - will contain the same bitmap as a in read_buttons, but set bits are
+;       buttons pressed
+;   c - will contain the same bitmap as a in read_buttons, but set bits are
+;       buttons released
+check_button_event:
+    call read_buttons
+    ld hl, prev_button_state
+
+    ld d, [hl]  ; d holds previous state
+    ld [hl], a  ; Save current state for next use
+    ld e, a     ; e holds current state
+
+    xor a, d    ; Changed bits will be set
+    ld c, a
+
+    and a, d    ; Bits previously set and changed (press)
+    ld b, a
+    ld a, c
+    and a, e    ; Bits previously clear and changed (release)
+    ld c, a
 
     ret
 
@@ -426,6 +462,8 @@ frame_delay:
     ds 1
 prev_button_state:
     ds 1
+button_events:
+    ds 2
 
 union
 flash_rdata_status:
