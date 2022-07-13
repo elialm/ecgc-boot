@@ -1,3 +1,5 @@
+STACK_SIZE  equ 256 
+
 section "Reset routine rst_00",rom0[$0000]
 __rst_00:
     jp __start
@@ -60,3 +62,8 @@ ds $4B, $00
     ;   ================================
     ;   Header data provided by rgbfix
     ;   ================================
+
+section "Stack",wram0[$CFFF-(STACK_SIZE-1)]
+ds STACK_SIZE-1
+stack_top::
+ds 1

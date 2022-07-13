@@ -68,7 +68,7 @@ section "Initialisation",rom0[$0150]
 ; Initialisation
 __main::
     di                  ; Disable interrupts
-    ld sp, $FFFE        ; Initialise stack pointer
+    ld sp, stack_top    ; Initialise stack pointer
 
     ld a, $01
     ld [rIE], a         ; Enable VBL interrupt
@@ -109,22 +109,22 @@ __main::
 
     ; Initialise x coord
     ld a, $0C
-    ld [x_coord], a
+    ldh [x_coord], a
     ld a, $06
-    ld [frame_delay], a
+    ldh [frame_delay], a
 
     ; Initialise selector location
     ld a, $05
-    ld [cursor_location], a
+    ldh [cursor_location], a
 
     ; Initialise previous button state
     ld a, $FF
-    ld [prev_button_state], a
+    ldh [prev_button_state], a
 
     ; Initialise button events
     xor a, a
-    ld [button_events], a
-    ld [button_events+1], a
+    ldh [button_events], a
+    ldh [button_events+1], a
 
     ; Enable LCD
     ld hl, rLCDC
@@ -239,14 +239,14 @@ __main::
     halt
 
     ; Check frame delay
-    ld a, [frame_delay]
+    ldh a, [frame_delay]
     dec a
-    ld [frame_delay], a
+    ldh [frame_delay], a
     jp nz, .frame_tick
 
     ; Reset frame delay
     ld a, $06
-    ld [frame_delay], a
+    ldh [frame_delay], a
 
     call update_crawl
 
@@ -255,10 +255,10 @@ __main::
     ; ld a, c
     ; ld [button_events], a
     ld a, b
-    ld [button_events+1], a
+    ldh [button_events+1], a
 
     ; Load selector location pointer
-    ld a, [cursor_location]
+    ldh a, [cursor_location]
     ld c, a
     call get_cursor_pointer
 
@@ -296,7 +296,7 @@ __main::
 
     ; Store selector location
     ld a, c
-    ld [cursor_location], a
+    ldh [cursor_location], a
 
     jp .frame_tick
 
@@ -320,7 +320,7 @@ get_cursor_pointer:
 update_crawl:
     ; Initialise screen pointer
     ld h, $9A
-    ld a, [x_coord]
+    ldh a, [x_coord]
     ld l, a
 
     ; Check if coordinate needs to roll over
@@ -335,7 +335,7 @@ update_crawl:
     ld l, a
 
 .skip_rollover:
-    ld [x_coord], a
+    ldh [x_coord], a
 
     ; Write char to screen
     ld a, $01
@@ -514,7 +514,7 @@ flash_rdata_page_rom:
 cursor_locations:
     db $0F,$10,$11,$12,$51,$52
 
-section "Variable data",wram0
+section "Variable data",hram
 
 x_coord:
     ds 1
