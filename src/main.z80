@@ -113,6 +113,12 @@ __main::
     ld a, $06
     ld [frame_delay], a
 
+    ; Initialise selector location
+    ld a, $98
+    ld [cursor_location+1], a
+    ld a, $12
+    ld [cursor_location], a
+
     ; Initialise previous button state
     ld a, $FF
     ld [prev_button_state], a
@@ -246,16 +252,92 @@ __main::
 
     call update_crawl
 
-    ; ; Read button state
-    ; call read_buttons
-    ; ld [prev_button_state], a
-
     ; Read button state and check for press/release events
     call check_button_event
-    ld a, c
-    ld [button_events], a
+    ; ld a, c
+    ; ld [button_events], a
     ld a, b
     ld [button_events+1], a
+
+    ; Load selector location pointer
+    ld a, [cursor_location]
+    ld l, a
+    ld a, [cursor_location+1]
+    ld h, a
+
+    ; Clear cursor in place
+    xor a, a
+    ld [hl], a
+    ld d, a
+
+    ; Check for left press
+    bit 5, b
+    jr z, .check_right_press
+    ld a, $0F
+    cp a, l     ; Check if cursor is upper left
+    jr z, .check_right_press
+    ld a, $51
+    cp a, l     ; Check if cursor is lower left
+    jr z, .check_right_press
+    dec hl
+    jr .done_checking_press
+
+.check_right_press:
+    bit 4, b
+    jr z, .check_down_press
+    ld a, $12
+    cp a, l     ; Check if cursor is upper right
+    jr z, .check_down_press
+    ld a, $52
+    cp a, l     ; Check if cursor is lower right
+    jr z, .check_down_press
+    inc hl
+    jr .done_checking_press
+
+.check_down_press:
+    bit 7, b
+    jr z, .check_up_press
+    ld a, $11
+    cp a, l     ; Check if cursor is above 2nd address digit
+    jr z, .move_cursor_down
+    ld a, $12
+    cp a, l     ; Check if cursor is above 1st address digit
+    jr z, .move_cursor_down
+    jr .check_up_press
+
+.move_cursor_down:
+    ld e, $40
+    add hl, de
+    jr .done_checking_press
+
+.check_up_press:
+    bit 6, b
+    jr z, .done_checking_press
+    ld a, $51
+    cp a, l     ; Check if cursor is above 2nd data digit
+    jr z, .move_cursor_up
+    ld a, $52
+    cp a, l     ; Check if cursor is above 1st data digit
+    jr z, .move_cursor_up
+    jr .done_checking_press
+
+.move_cursor_up:
+    ld e, $C0
+    add hl, de
+    dec h
+    jr .done_checking_press
+
+.done_checking_press:
+
+    ; Place cursor
+    ld a, $15
+    ld [hl], a
+
+    ; Update cursor pointer
+    ld a, l
+    ld [cursor_location], a
+    ld a, h
+    ld [cursor_location+1], a
 
     jp .frame_tick
 
@@ -463,6 +545,8 @@ frame_delay:
 prev_button_state:
     ds 1
 button_events:
+    ds 2
+cursor_location:
     ds 2
 
 union
