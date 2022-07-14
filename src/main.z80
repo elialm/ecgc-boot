@@ -278,13 +278,39 @@ __main::
 
 .check_right_press:
     bit 4, b
-    jr z, .done_checking_press
+    jr z, .check_up_press
     inc c
     ld a, $06
     cp a, c
     jr nz, .done_checking_press
     xor a, a
     ld c, a
+    jr .done_checking_press
+
+.check_up_press:
+    bit 6, b
+    jr z, .check_down_press
+    call get_pointer_below_cursor
+    ld a, [hl]
+    inc a
+    ld e, $11
+    cp a, e
+    jr nz, .skip_value_overflow
+    xor a, a
+    inc a
+.skip_value_overflow:
+    ld [hl], a
+
+.check_down_press:
+    bit 7, b
+    jr z, .done_checking_press
+    call get_pointer_below_cursor
+    ld a, [hl]
+    dec a
+    jr nz, .skip_value_underflow
+    ld a, $10
+.skip_value_underflow:
+    ld [hl], a
 
 .done_checking_press:
 
@@ -313,6 +339,17 @@ get_cursor_pointer:
     ld a, [hl]
     ld h, $98
     ld l, a
+
+    ret
+
+; Well, exactly what the name implies
+;   hl - must be the pointer to the cursor
+;   hl - will contain the aformentioned pointer after execution
+get_pointer_below_cursor:
+    xor a, a
+    ld d, a
+    ld e, $20
+    add hl, de
 
     ret
 
