@@ -263,9 +263,13 @@ perform_read_transaction:
 
     ; Perform the transaction
     ld e, [hl]
+    push de
+    push hl
 
     ; Scroll the screen
     call scroll_history
+    pop hl
+    pop de
 
     ; Write upper address byte to screen
     ld d, h
@@ -412,10 +416,11 @@ handle_button_press:
     inc a
 .skip_value_overflow:
     ld [hl], a
+    jr .done_checking_press
 
 .check_down_press:
     bit 7, b
-    jr z, .done_checking_press
+    jr z, .check_a_press
     call get_pointer_below_cursor
     ld a, [hl]
     dec a
@@ -423,6 +428,12 @@ handle_button_press:
     ld a, $10
 .skip_value_underflow:
     ld [hl], a
+    jr .done_checking_press
+
+.check_a_press:
+    bit 0, b
+    jr z, .done_checking_press
+    call perform_read_transaction
 
 .done_checking_press:
 
