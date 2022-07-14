@@ -46,22 +46,26 @@ endm
 
 ; Charmap for chars used in boot (very minimalistic)
 newcharmap boot
-charmap "0", $00
-charmap "1", $01
-charmap "2", $02
-charmap "3", $03
-charmap "4", $04
-charmap "5", $05
-charmap "6", $06
-charmap "7", $07
-charmap "8", $08
-charmap "9", $09
-charmap "A", $0A
-charmap "B", $0B
-charmap "C", $0C
-charmap "D", $0D
-charmap "E", $0E
-charmap "F", $0F
+charmap " ", $00
+charmap "0", $01
+charmap "1", $02
+charmap "2", $03
+charmap "3", $04
+charmap "4", $05
+charmap "5", $06
+charmap "6", $07
+charmap "7", $08
+charmap "8", $09
+charmap "9", $0A
+charmap "A", $0B
+charmap "B", $0C
+charmap "C", $0D
+charmap "D", $0E
+charmap "E", $0F
+charmap "F", $10
+charmap "R", $11
+charmap "W", $12
+charmap ":", $13
 
 section "Initialisation",rom0[$0150]
 
@@ -238,6 +242,8 @@ __main::
 .frame_tick:
     halt
 
+    ; call handle_button_press
+
     ; Check frame delay
     ldh a, [frame_delay]
     dec a
@@ -249,7 +255,41 @@ __main::
     ldh [frame_delay], a
 
     call update_crawl
+    ; call scroll_history
 
+    jp .frame_tick
+
+; Scroll history of transactions situated left of the screen
+; Note - temporarily disables LCD
+scroll_history:
+    ; Disable LCD
+    ld hl, rLCDC
+    res 7, [hl]
+
+    ld hl, $9A2A
+    ld e, 15
+.scroll_loop:
+    ld d, 9
+    push de
+    ld de, $FFB7    ; Decrement to start of 2 lines above
+    add hl, de
+    ld b, h
+    ld c, l         ; bc now contains pointer to start of src line
+    ld de, $0020
+    add hl, de      ; hl now contains pointer to start of dest line
+    pop de
+    call memcpy
+
+    dec e
+    jr nz, .scroll_loop
+
+    ; Enable LCD
+    ld hl, rLCDC
+    set 7, [hl]
+
+    ret
+
+handle_button_press:
     ; Read button state and check for press/release events
     call check_button_event
     ; ld a, c
@@ -324,7 +364,7 @@ __main::
     ld a, c
     ldh [cursor_location], a
 
-    jp .frame_tick
+    ret
 
 ; Get one of the VRAM pointers to cursor locations
 ;   a - must contain the index into `cursor_locations`
