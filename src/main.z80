@@ -242,7 +242,7 @@ __main::
 .frame_tick:
     halt
 
-    ; call handle_button_press
+    call handle_button_press
 
     ; Check frame delay
     ldh a, [frame_delay]
@@ -255,12 +255,88 @@ __main::
     ldh [frame_delay], a
 
     call update_crawl
-    ; call scroll_history
 
     jp .frame_tick
 
+perform_read_transaction:
+    call load_transaction_info    
+
+    ; Perform the transaction
+    ld e, [hl]
+
+    ; Scroll the screen
+    call scroll_history
+
+    ; Write upper address byte to screen
+    ld d, h
+    call d2hex
+    ld a, b
+    ld [$9821], a
+    ld a, c
+    ld [$9822], a
+
+    ; Write lower address byte to screen
+    ld d, l
+    call d2hex
+    ld a, b
+    ld [$9823], a
+    ld a, c
+    ld [$9824], a
+
+    ; Write data byte to screen
+    ld d, e
+    call d2hex
+    ld a, b
+    ld [$9826], a
+    ld a, c
+    ld [$9827], a
+
+    ; Write 'R' to indicate read
+    ld a, "R"
+    ld [$9829], a
+
+    ; Enable LCD
+    ld hl, rLCDC
+    set 7, [hl]
+    
+; Load transaction info from screen
+;   hl - will contain the address
+;   a - will contain the data (used on write)
+load_transaction_info:
+    ld hl, $982F
+    call hstr2a
+    ldh [transaction_address+1], a
+    call hstr2a
+    ldh [transaction_address], a
+    ld hl, $9871
+    call hstr2a
+    ld d, a
+
+    ; Load transaction address to hl
+    ld a, [transaction_address]
+    ld l, a
+    ld a, [transaction_address+1]
+    ld h, a
+    ld a, d
+
+    ret
+
+; Convert a hex string to its binairy counterpart in a register
+;   hl - pointer to the start of the string
+;
+;   a - will contain the result
+hstr2a:
+    ld a, [hl+]
+    ld b, a
+    ld a, [hl+]
+    ld c, a
+    call hex2d
+    ld a, d
+
+    ret
+
 ; Scroll history of transactions situated left of the screen
-; Note - temporarily disables LCD
+; Note - disables LCD
 scroll_history:
     ; Disable LCD
     ld hl, rLCDC
@@ -282,10 +358,6 @@ scroll_history:
 
     dec e
     jr nz, .scroll_loop
-
-    ; Enable LCD
-    ld hl, rLCDC
-    set 7, [hl]
 
     ret
 
@@ -624,6 +696,8 @@ button_events:
     ds 2
 cursor_location:
     ds 1
+transaction_address:
+    ds 2
 
 union
 flash_rdata_status:
