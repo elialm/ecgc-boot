@@ -125,11 +125,6 @@ __main::
     ld a, $FF
     ldh [prev_button_state], a
 
-    ; Initialise button events
-    xor a, a
-    ldh [button_events], a
-    ldh [button_events+1], a
-
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
@@ -169,9 +164,9 @@ __main::
     ld a, %10000000
     ld [CART_EFB_SPICR1], a
 
-    ; Transmit a byte
-    ld a, $55
-    ld [CART_EFB_SPITXDR], a
+    ; ; Transmit a byte
+    ; ld a, $55
+    ; ld [CART_EFB_SPITXDR], a
 
 ; 	; Code to read 1 page from UFM0
 
@@ -418,10 +413,6 @@ scroll_history:
 handle_button_press:
     ; Read button state and check for press/release events
     call check_button_event
-    ; ld a, c
-    ; ld [button_events], a
-    ld a, b
-    ldh [button_events+1], a
 
     ; Load selector location pointer
     ldh a, [cursor_location]
@@ -484,12 +475,16 @@ handle_button_press:
     bit 0, b
     jr z, .check_b_press
     call perform_read_transaction
+    ldh a, [cursor_location]    ; Cursor location has not changed
+    ld c, a                     ; So load original
     jr .done_checking_press
 
 .check_b_press:
     bit 1, b
     jr z, .done_checking_press
     call perform_write_transaction
+    ldh a, [cursor_location]    ; Cursor location has not changed
+    ld c, a                     ; So load original
 
 .done_checking_press:
 
@@ -759,17 +754,15 @@ frame_delay:
     ds 1
 prev_button_state:
     ds 1
-button_events:
-    ds 2
 cursor_location:
     ds 1
 transaction_address:
     ds 2
 
-union
-flash_rdata_status:
-    ds 4
-nextu
-flash_rdata_page:
-    ds 16
-endu
+; union
+; flash_rdata_status:
+;     ds 4
+; nextu
+; flash_rdata_page:
+;     ds 16
+; endu
