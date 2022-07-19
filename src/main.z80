@@ -236,6 +236,7 @@ __main::
 
 .frame_tick:
     halt
+    nop
 
     call handle_button_press
 
@@ -385,9 +386,10 @@ hstr2a:
     ret
 
 ; Scroll history of transactions situated left of the screen
-; Note - disables LCD
 scroll_history:
-    ; Disable LCD
+    ; Halt till next VBlank, then disable LCD
+    halt
+    nop
     ld hl, rLCDC
     res 7, [hl]
 
@@ -405,7 +407,7 @@ scroll_history:
     pop de
     call memcpy
 
-    dec e
+    dec e           ; Loop counter
     jr nz, .scroll_loop
 
     ret
