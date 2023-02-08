@@ -39,7 +39,7 @@ open `/src/ips/boot_ram/boot_ram.ipx`.
 This will show a dialog box like the one below,
 where one must update the path to point to the new `.mem` file.
 
-**TODO: insert image**
+![image](https://user-images.githubusercontent.com/43206514/217513135-92f77f94-db69-4eff-919e-143572e82703.png)
 
 After the ip code is generated,
 the firmware can be built and uploaded to the FPGA.
