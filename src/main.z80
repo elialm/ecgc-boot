@@ -152,7 +152,7 @@ __main::
     ld a, %11000000
     ld [CART_EFB_SPICR2], a
 
-    ; Control register 2 values
+    ; Control register 1 values
     ;   - [7] SPI enabled
     ;   - [6] User wake-up disabled
     ;   - [5] Enable configuration wake-up disabled
