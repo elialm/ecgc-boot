@@ -406,6 +406,15 @@ perform_function_call:
     ld a, c
     ld [$9824], a
 
+    ; Write data byte to screen
+    ld a, [transaction_data]
+    ld d, a
+    call d2hex
+    ld a, b
+    ld [$9826], a
+    ld a, c
+    ld [$9827], a
+
     ; Write 'C' to indicate function call
     ld a, "C"
     ld [$9829], a
@@ -422,8 +431,8 @@ jump_to_hl:
     ret
 
 perform_long_workload:
-    xor a, a
-    dec a
+    ldh a, [transaction_data]
+    inc a
 
 .loop
     ; Halt till next VBlank
