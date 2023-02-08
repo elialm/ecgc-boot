@@ -238,6 +238,7 @@ __main::
     halt
     nop
 
+    call load_transaction_info
     call handle_button_press
 
     ; Check frame delay
@@ -255,7 +256,11 @@ __main::
     jp .frame_tick
 
 perform_read_transaction:
-    call load_transaction_info    
+    ; Load transaction address to hl
+    ld a, [transaction_address]
+    ld l, a
+    ld a, [transaction_address+1]
+    ld h, a
 
     ; Perform the transaction
     ld e, [hl]
@@ -302,7 +307,12 @@ perform_read_transaction:
     ret
 
 perform_write_transaction:
-    call load_transaction_info    
+    ; Load transaction address to hl and data to a
+    ld a, [transaction_address]
+    ld l, a
+    ld a, [transaction_address+1]
+    ld h, a
+    ld a, [transaction_data]
 
     ; Perform the transaction
     ld e, a
@@ -348,10 +358,85 @@ perform_write_transaction:
     set 7, [hl]
 
     ret
+
+perform_function_call:
+    ; Halt till next VBlank, then disable LCD
+    halt
+    nop
+    ld hl, rLCDC
+    res 7, [hl]
+
+    ; Display cross after "Fn" on screen
+    LOAD_CELL_SCRN0_HL 6,18
+    inc [hl]
+
+    ; Enable LCD
+    ld hl, rLCDC
+    set 7, [hl]
+
+    ; Jump to selected address
+    ld a, [transaction_address]
+    ld l, a
+    ld a, [transaction_address+1]
+    ld h, a
+    call jump_to_hl
+
+    ; Scroll the screen
+    call scroll_history
+
+    ; Clear cross after "Fn" on screen
+    LOAD_CELL_SCRN0_HL 6,18
+    dec [hl]
+
+    ; Write upper address byte to screen
+    ld a, [transaction_address+1]
+    ld d, a
+    call d2hex
+    ld a, b
+    ld [$9821], a
+    ld a, c
+    ld [$9822], a
+
+    ; Write lower address byte to screen
+    ld a, [transaction_address]
+    ld d, a
+    call d2hex
+    ld a, b
+    ld [$9823], a
+    ld a, c
+    ld [$9824], a
+
+    ; Write 'C' to indicate function call
+    ld a, "C"
+    ld [$9829], a
+
+    ; Enable LCD
+    ld hl, rLCDC
+    set 7, [hl]
+
+    ret
+
+; Jump to the address pointed to by hl
+jump_to_hl:
+    jp hl
+    ret
+
+perform_long_workload:
+    xor a, a
+    dec a
+
+.loop
+    ; Halt till next VBlank
+    halt
+    nop
+
+    ; Loop if a != 0
+    dec a
+    jr nz, .loop
+
+    ret
     
-; Load transaction info from screen
-;   hl - will contain the address
-;   a - will contain the data (used on write)
+; Load transaction info from screen into RAM
 load_transaction_info:
     ld hl, $982F
     call hstr2a
@@ -360,14 +445,7 @@ load_transaction_info:
     ldh [transaction_address], a
     ld hl, $9871
     call hstr2a
-    ld d, a
-
-    ; Load transaction address to hl
-    ld a, [transaction_address]
-    ld l, a
-    ld a, [transaction_address+1]
-    ld h, a
-    ld a, d
+    ldh [transaction_data], a
 
     ret
 
@@ -483,8 +561,15 @@ handle_button_press:
 
 .check_b_press:
     bit 1, b
-    jr z, .done_checking_press
+    jr z, .check_start_press
     call perform_write_transaction
+    ldh a, [cursor_location]    ; Cursor location has not changed
+    ld c, a                     ; So load original
+
+.check_start_press:
+    bit 3, b
+    jr z, .done_checking_press
+    call perform_function_call
     ldh a, [cursor_location]    ; Cursor location has not changed
     ld c, a                     ; So load original
 
@@ -581,14 +666,14 @@ check_button_event:
     ret
 
 ; Read from buttons and store result in a
-;   a[7] - Start
-;   a[6] - Select
-;   a[5] - B
-;   a[4] - A
-;   a[3] - Down
-;   a[2] - Up
-;   a[1] - Left
-;   a[0] - Right
+;   a[7] - Down
+;   a[6] - Up
+;   a[5] - Left
+;   a[4] - Right
+;   a[3] - Start
+;   a[2] - Select
+;   a[1] - B
+;   a[0] - A
 read_buttons:
     ld hl, rP1
 
@@ -760,6 +845,8 @@ cursor_location:
     ds 1
 transaction_address:
     ds 2
+transaction_data:
+    ds 1
 
 ; union
 ; flash_rdata_status:
