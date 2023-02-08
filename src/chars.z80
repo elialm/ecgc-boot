@@ -10,7 +10,7 @@
 ;   Compression          : None.
 ;   Counter              : Byte-count as Word.
 ;   Tile size            : 8 x 8
-;   Tiles                : 0 to 21
+;   Tiles                : 0 to 24
 ;
 ;   Palette colors       : None.
 ;   SGB Palette          : None.
@@ -24,7 +24,7 @@
 
 ; Start of tile array.
 chars_data::
-DW 352
+DW 400
 DB $00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$3C,$3C,$66,$66,$66,$66
@@ -69,5 +69,11 @@ DB $C0,$C0,$C0,$C0,$C0,$C0,$C0,$C0
 DB $C0,$C0,$C0,$C0,$C0,$C0,$C0,$C0
 DB $00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$7E,$7E,$3C,$3C,$18,$18
+DB $FF,$FF,$81,$81,$81,$81,$81,$81
+DB $81,$81,$81,$81,$81,$81,$FF,$FF
+DB $FF,$FF,$C3,$C3,$A5,$A5,$99,$99
+DB $99,$99,$A5,$A5,$C3,$C3,$FF,$FF
+DB $00,$00,$00,$00,$00,$00,$68,$68
+DB $74,$74,$64,$64,$64,$64,$64,$64
 
 ; End of CHARS.Z80
