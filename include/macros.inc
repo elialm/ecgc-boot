@@ -7,28 +7,28 @@ MACROS_INC = 1
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN0_BC: macro
-	ld bc, _SCRN0 + SCRN_VX_B * \2 + \1
+	ld bc, _SCRN0 + SCRN_VX_B * \1 + \2
 endm
 
 ; Get adress of cell on virtual screen 0 and load pointer into [hl]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN0_HL: macro
-	ld hl, _SCRN0 + SCRN_VX_B * \2 + \1
+	ld hl, _SCRN0 + SCRN_VX_B * \1 + \2
 endm
 
 ; Get adress of cell on virtual screen 1 and load pointer into [bc]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN1_BC: macro
-	ld bc, _SCRN1 + SCRN_VX_B * \2 + \1
+	ld bc, _SCRN1 + SCRN_VX_B * \1 + \2
 endm
 
 ; Get adress of cell on virtual screen 1 and load pointer into [hl]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN1_HL: macro
-	ld hl, _SCRN1 + SCRN_VX_B * \2 + \1
+	ld hl, _SCRN1 + SCRN_VX_B * \1 + \2
 endm
 
 ; Add 16-bit register with accumulator
