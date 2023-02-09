@@ -36,6 +36,12 @@ CART_EFB_CFGRXDR    equ (CART_EFB_BASE + $73)   ; EFB Flash Recieve Data
 CART_EFB_CFGIRQ     equ (CART_EFB_BASE + $74)   ; EFB Flash Interrupt Request
 CART_EFB_CFGIRQEN   equ (CART_EFB_BASE + $75)   ; EFB Flash Interrupt Request Enable
 
+; DRAM Bank Selection 0
+CART_DRAM_SEL0      equ $A200
+
+; DRAM Bank Selection 1
+CART_DRAM_SEL1      equ $A300
+
 ; DMA Base address
 CART_DMA_BASE       equ $A500
 

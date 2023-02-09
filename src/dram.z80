@@ -1,0 +1,103 @@
+include "hardware.inc"
+include "macros.inc"
+include "ecgc_cart.inc"
+
+; DRAM_TEST_UPPER_BANK = $07FF
+DRAM_TEST_UPPER_BANK = $0001
+DRAM_TEST_UPPER_BLOCK = $3F
+
+section "DRAM routines", rom0
+
+dram_start_test::
+    ; Set initial DRAM bank to 0
+    xor a, a
+    ld [CART_DRAM_SEL0], a
+    ld [CART_DRAM_SEL1], a
+
+    ; Initialise loop counter
+    ldh [bank_counter], a
+    ldh [bank_counter+1], a
+    ldh [block_counter], a
+
+    ; Initialise DMA registers
+    ld [CART_DMA_CPAM], a
+    or a, (1 << CART_DMA_CFG_DINC) | (1 << CART_DMA_CFG_SINC)
+    ld [CART_DMA_CFG], a
+
+    ; Initialise rand routine
+    ld a, [dram_test_rand_seed]
+    call rand_init
+
+.bank_loop:
+    ; Reset DMA destination address
+    xor a, a
+    ld [CART_DMA_DAL], a
+    ld a, $40
+    ld [CART_DMA_DAH], a
+
+.block_loop:
+    ; Reset DMA source address
+    ld a, low(dram_test_data_buffer)
+    ld [CART_DMA_SAL], a
+    ld a, high(dram_test_data_buffer)
+    ld [CART_DMA_SAH], a
+
+    ; Fill test data buffer with random data
+    ld b, $00
+    ld de, dram_test_data_buffer
+.rng_loop:
+    call rand
+    ld [de], a
+    inc de
+    inc b
+    jr nz, .rng_loop
+
+    ; Start DMA to copy test data to DRAM
+    call dma_await
+
+    ; Increment block counter and check if block loop still needs to run
+    ldh a, [block_counter]
+    inc a
+    ldh [block_counter], a
+    cp a, DRAM_TEST_UPPER_BLOCK
+    jr nz, .block_loop
+
+    ; Reset block counter
+    xor a, a
+    ldh [block_counter], a
+
+    ; Increment bank counter and check if bank loop still needs to run
+    ld hl, bank_counter
+    inc [hl]    
+    jr nz, .skip_upper_inc
+    inc hl
+    inc [hl]
+    dec hl
+.skip_upper_inc:
+    ; incremented bank counter is stored to ram
+    inc hl
+    ld a, high(DRAM_TEST_UPPER_BANK)
+    cp a, [hl]
+    jr nz, .bank_loop
+    dec hl
+    ld a, low(DRAM_TEST_UPPER_BANK)
+    cp a, [hl]
+    jr nz, .bank_loop
+
+    ret
+
+; Random number seed
+dram_test_rand_seed:
+    db $6E
+
+section "DRAM test data buffer", wram0
+
+dram_test_data_buffer:
+    ds 256
+
+section "DRAM routines variables", hram
+
+bank_counter:
+    ds 2
+block_counter:
+    ds 1
