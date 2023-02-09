@@ -349,6 +349,7 @@ perform_function_call:
     ld l, a
     ld a, [transaction_address+1]
     ld h, a
+    ld a, [transaction_data]
     call jump_to_hl
 
     ; Scroll the screen
@@ -701,91 +702,6 @@ efb_flash_read:
     dec d
     
     jp nz, .copy_loop
-    ret
-
-; Convert a byte to its 2-byte text counterpart in hex using the boot charmap
-;   d - byte to convert
-;
-;   bc - will contain the chars, b will contain it
-;        for the upper 4 bits in d, c will contain it for
-;        the lower 4 bits in d
-d2hex:
-    ; Load lower 4 bits into c and increment
-    ld a, d
-    and a, $0F
-    ld c, a
-    inc c
-
-    ; Load upper 4 bits into b and increment
-    ld a, d
-    swap a
-    and a, $0F
-    ld b, a
-    inc b
-
-    ret
-
-; Convert a 2-byte hex string to its binary counterpart in a register
-;   bc - must contain the chars, b will contain it
-;        for the upper 4 bits in a, c will contain it for
-;        the lower 4 bits in a
-;
-;   d - will contain result byte
-hex2d:
-    ; Load upper 4-bits
-    ld a, b
-    dec a
-    ld d, a
-    swap d
-
-    ; Load lower 4-bits
-    ld a, c
-    dec a
-    or a, d
-    ld d, a
-
-    ret
-
-; Memory copy - copies n bytes (8 bit) from src to dest, incrementing pointer
-;   n    - [d] registers (n != 0)
-;   src  - [bc] registers
-;   dest - [hl] registers
-memcpy:
-    ld a, [bc]          ; Load from src
-    ld [hl+], a         ; Copy to dest and increment pointer
-    inc bc              ; Increment src pointer
-    dec d               ; Decrement counter
-
-    jp nz, memcpy       ; Keep copying if != 0
-    ret
-
-; Memory copy - copies n bytes (16 bit) from src to dest, incrementing pointer
-;   n    - [de] registers (n != 0)
-;   src  - [bc] registers
-;   dest - [hl] registers
-memcpy_wd:
-    ld a, [bc]          ; Load from src
-    ld [hl+], a         ; Copy to dest and increment pointer
-    inc bc              ; Increment src pointer
-    dec de              ; Decrement counter
-	
-    ; Compare de to 0
-    xor a,a
-    or a, e
-    jp nz, memcpy_wd    ; Keep copying if != 0
-    or a, d
-    jp nz, memcpy_wd    ; Keep copying if != 0
-
-    ret
-
-; Memory set - sets n bytes (8 bit) at dest to x, incrementing pointer
-;   n       - 'd' register (n != 0)
-;   dest    - [hl] register
-;   x       - 'a' register
-memset:
-    ld [hl+], a
-    dec d
-    jp nz, memset
     ret
 
 section "Contant data",rom0

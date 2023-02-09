@@ -1,0 +1,31 @@
+include "hardware.inc"
+include "macros.inc"
+include "ecgc_cart.inc"
+
+section "DMA", rom0
+
+dma_await_copy::
+    ld d, (dma_await.end - dma_await)
+    ld bc, dma_await_rom
+    ld hl, dma_await
+    call memcpy
+    ret
+
+dma_await_rom:
+    load "DMA RAM", wram0
+dma_await::
+    ; Start DMA
+    and a, %00110000
+    or a, (1 << CART_DMA_CFG_STRT)
+    ld [CART_DMA_CFG], a
+
+    ; Loop while busy flag is asserted
+    ld hl, CART_DMA_CFG
+.check_busy_flag
+    bit CART_DMA_CFG_BUSY, [hl]
+    jr nz, .check_busy_flag
+
+    ret
+
+.end
+    endl
