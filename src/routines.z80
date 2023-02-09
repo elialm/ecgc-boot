@@ -1,15 +1,8 @@
 section "Routines", rom0
 
-; Random number seed
-rand_seed:
-    db $6E
-
-; Initialise rand routine
-; RNG is seeded by byte stored at rand_seed
+; Initialise rand routine by seeding it with the value in register a
 rand_init::
-    ld a, [rand_seed]
     ld [rand_state], a
-
     ret
 
 ; Load pseudo-random number in the a register
