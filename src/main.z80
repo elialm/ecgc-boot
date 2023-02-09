@@ -204,6 +204,9 @@ __main::
 
 ;     ; At this point, the page data should be at flash_rdata_page
 
+    ; Initialise dma_await routine
+    call dma_await_init
+
 .frame_tick:
     halt
     nop

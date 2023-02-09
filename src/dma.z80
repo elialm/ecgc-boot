@@ -2,9 +2,10 @@ include "hardware.inc"
 include "macros.inc"
 include "ecgc_cart.inc"
 
-section "DMA", rom0
+section "DMA routines", rom0
 
-dma_await_copy::
+; Initialise dma_await routine by copying it to ram
+dma_await_init::
     ld d, (dma_await.end - dma_await)
     ld bc, dma_await_rom
     ld hl, dma_await
@@ -12,11 +13,13 @@ dma_await_copy::
     ret
 
 dma_await_rom:
-    load "DMA RAM", wram0
+    load "DMA routines (RAM)", wram0
+
+; Start the Cartridge DMA and wait for it to finish
+; WARNING: the dma_await_init must be called once before calling this routine
 dma_await::
     ; Start DMA
-    and a, %00110000
-    or a, (1 << CART_DMA_CFG_STRT)
+    ld a, (1 << CART_DMA_CFG_STRT)
     ld [CART_DMA_CFG], a
 
     ; Loop while busy flag is asserted
