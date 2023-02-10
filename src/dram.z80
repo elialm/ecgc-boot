@@ -1,6 +1,7 @@
+include "boot.inc"
+include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
-include "ecgc_cart.inc"
 
 ; DRAM_TEST_UPPER_BANK = $07FF
 DRAM_TEST_UPPER_BANK = $0001
@@ -9,11 +10,6 @@ DRAM_TEST_UPPER_BLOCK = $3F
 section "DRAM routines", rom0
 
 dram_start_test::
-    ; Set initial DRAM bank to 0
-    xor a, a
-    ld [CART_DRAM_SEL0], a
-    ld [CART_DRAM_SEL1], a
-
     ; Initialise loop counter
     ldh [bank_counter], a
     ldh [bank_counter+1], a
@@ -28,12 +24,62 @@ dram_start_test::
     ld a, [dram_test_rand_seed]
     call rand_init
 
+    ; Halt till next VBlank, then disable LCD
+    halt
+    nop
+    ld hl, rLCDC
+    res 7, [hl]
+
+    ; Scroll history and empty line
+    call scroll_history
+    LOAD_CELL_SCRN0_HL 1, 1
+    ld d, 9
+    xor a, a
+    call memset
+    call scroll_history
+
+    ; Print read progress line
+    LOAD_CELL_SCRN0_HL 1, 1
+    ld a, "R"
+    ld [hl+], a
+    ld a, "B"
+    ld [hl+], a
+    inc hl
+    ld a, "0"
+    ld d, 4
+    call memset
+
+    ; Scroll history to lower read progress line
+    call scroll_history
+
+    ; Print write progress line
+    LOAD_CELL_SCRN0_HL 1, 1
+    ld a, "W"
+    ld [hl+], a
+    ld a, "B"
+    ld [hl+], a
+    inc hl
+    ld a, "0"
+    ld d, 4
+    call memset
+
+    ; Enable LCD
+    ld hl, rLCDC
+    set 7, [hl]
+
 .bank_loop:
     ; Reset DMA destination address
     xor a, a
     ld [CART_DMA_DAL], a
     ld a, $40
     ld [CART_DMA_DAH], a
+
+    ; Set DRAM bank
+    ld a, [bank_counter]
+    ld [CART_DRAM_SEL0], a
+    ld a, [bank_counter+1]
+    and a, %00000111
+    ld [CART_DRAM_SEL1], a
 
 .block_loop:
     ; Reset DMA source address
@@ -65,6 +111,9 @@ dram_start_test::
     ; Reset block counter
     xor a, a
     ldh [block_counter], a
+
+    ; Update screen write status
+    ; TODO
 
     ; Increment bank counter and check if bank loop still needs to run
     ld hl, bank_counter
