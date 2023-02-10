@@ -5,7 +5,7 @@ include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $07FF
 DRAM_TEST_UPPER_BANK = $0010
-DRAM_TEST_UPPER_BLOCK = $40
+DRAM_TEST_RNG_BYTES_COUNT = $4000
 
 section "DRAM routines", rom0
 
@@ -13,12 +13,6 @@ dram_start_test::
     ; Initialise loop counter
     ldh [bank_counter], a
     ldh [bank_counter+1], a
-    ldh [block_counter], a
-
-    ; Initialise DMA registers
-    ld [CART_DMA_CPAM], a
-    or a, (1 << CART_DMA_CFG_DINC) | (1 << CART_DMA_CFG_SINC)
-    ld [CART_DMA_CFG], a
 
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
@@ -68,12 +62,6 @@ dram_start_test::
     set 7, [hl]
 
 .bank_loop:
-    ; Reset DMA destination address
-    xor a, a
-    ld [CART_DMA_DAL], a
-    ld a, $40
-    ld [CART_DMA_DAH], a
-
     ; Set DRAM bank
     ld a, [bank_counter]
     ld [CART_DRAM_SEL0], a
@@ -104,36 +92,22 @@ dram_start_test::
 
     LCD_ENABLE
 
-.block_loop:
-    ; Reset DMA source address
-    ld de, dram_test_data_buffer
-    ld a, e
-    ld [CART_DMA_SAL], a
-    ld a, d
-    ld [CART_DMA_SAH], a
+    ; Set DRAM pointer
+    ld l, $00
+    ld h, $40
 
-    ; Fill test data buffer with random data
-    ld c, $00
+    ; Fill bank with random data
+    ld d, high(DRAM_TEST_RNG_BYTES_COUNT)
+    ld e, low(DRAM_TEST_RNG_BYTES_COUNT)
 .rng_loop:
     call rand
-    ld [de], a
-    inc de
-    inc c
-    jr nz, .rng_loop
-
-    ; Start DMA to copy test data to DRAM
-    call dma_await
-
-    ; Increment block counter and check if block loop still needs to run
-    ldh a, [block_counter]
-    inc a
-    ldh [block_counter], a
-    cp a, DRAM_TEST_UPPER_BLOCK
-    jr nz, .block_loop
-
-    ; Reset block counter
+    ld [hl+], a
+    dec de
     xor a, a
-    ldh [block_counter], a
+    cp a, d
+    jr nz, .rng_loop
+    cp a, e
+    jr nz, .rng_loop
 
     ; Increment bank counter and check if bank loop still needs to run
     ld hl, bank_counter
@@ -159,14 +133,7 @@ dram_start_test::
 dram_test_rand_seed:
     db $6E
 
-section "DRAM test data buffer", sram[$B100]
-
-dram_test_data_buffer:
-    ds 256
-
 section "DRAM routines variables", hram
 
 bank_counter:
     ds 2
-block_counter:
-    ds 1
