@@ -7,28 +7,28 @@ MACROS_INC = 1
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN0_BC: macro
-	ld bc, _SCRN0 + SCRN_VX_B * \1 + \2
+	ld bc, _SCRN0 + SCRN_VX_B * \2 + \1
 endm
 
 ; Get adress of cell on virtual screen 0 and load pointer into [hl]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN0_HL: macro
-	ld hl, _SCRN0 + SCRN_VX_B * \1 + \2
+	ld hl, _SCRN0 + SCRN_VX_B * \2 + \1
 endm
 
 ; Get adress of cell on virtual screen 1 and load pointer into [bc]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN1_BC: macro
-	ld bc, _SCRN1 + SCRN_VX_B * \1 + \2
+	ld bc, _SCRN1 + SCRN_VX_B * \2 + \1
 endm
 
 ; Get adress of cell on virtual screen 1 and load pointer into [hl]
 ;	x - x coordinate
 ;	y - y coordinate
 LOAD_CELL_SCRN1_HL: macro
-	ld hl, _SCRN1 + SCRN_VX_B * \1 + \2
+	ld hl, _SCRN1 + SCRN_VX_B * \2 + \1
 endm
 
 ; Add 16-bit register with accumulator
@@ -40,6 +40,20 @@ ADD_16_BIT: macro
 	jp nc, .done_adding		; If no carry, skip high byte
 	inc \1
 .done_adding
+endm
+
+; Wait for V-Blank and then disable the LCD
+LCD_DISABLE: macro
+	halt
+    nop
+    ld hl, rLCDC
+    res 7, [hl]
+endm
+
+; Enable the LCD
+LCD_ENABLE: macro
+	ld hl, rLCDC
+    set 7, [hl]
 endm
 
 endc

@@ -4,8 +4,8 @@ include "hardware.inc"
 include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $07FF
-DRAM_TEST_UPPER_BANK = $0001
-DRAM_TEST_UPPER_BLOCK = $3F
+DRAM_TEST_UPPER_BANK = $0010
+DRAM_TEST_UPPER_BLOCK = $40
 
 section "DRAM routines", rom0
 
@@ -81,6 +81,29 @@ dram_start_test::
     and a, %00000111
     ld [CART_DRAM_SEL1], a
 
+    ; Update screen write status
+    LCD_DISABLE
+    LOAD_CELL_SCRN0_HL 4, 1
+
+    ; Print bank_counter high byte
+    ld a, [bank_counter+1]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+    inc hl
+
+    ; Print bank_counter low byte
+    ld a, [bank_counter]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+
+    LCD_ENABLE
+
 .block_loop:
     ; Reset DMA source address
     ld de, dram_test_data_buffer
@@ -111,9 +134,6 @@ dram_start_test::
     ; Reset block counter
     xor a, a
     ldh [block_counter], a
-
-    ; Update screen write status
-    ; TODO
 
     ; Increment bank counter and check if bank loop still needs to run
     ld hl, bank_counter
