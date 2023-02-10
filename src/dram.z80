@@ -90,7 +90,7 @@ dram_start_test::
 dram_test_rand_seed:
     db $6E
 
-section "DRAM test data buffer", wram0
+section "DRAM test data buffer", sram[$B100]
 
 dram_test_data_buffer:
     ds 256
