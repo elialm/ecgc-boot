@@ -37,19 +37,19 @@ dram_start_test::
 
 .block_loop:
     ; Reset DMA source address
-    ld a, low(dram_test_data_buffer)
+    ld de, dram_test_data_buffer
+    ld a, e
     ld [CART_DMA_SAL], a
-    ld a, high(dram_test_data_buffer)
+    ld a, d
     ld [CART_DMA_SAH], a
 
     ; Fill test data buffer with random data
-    ld b, $00
-    ld de, dram_test_data_buffer
+    ld c, $00
 .rng_loop:
     call rand
     ld [de], a
     inc de
-    inc b
+    inc c
     jr nz, .rng_loop
 
     ; Start DMA to copy test data to DRAM
