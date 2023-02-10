@@ -19,7 +19,9 @@ dma_await_rom:
 ; WARNING: the dma_await_init must be called once before calling this routine
 dma_await::
     ; Start DMA
-    ld a, (1 << CART_DMA_CFG_STRT)
+    ld a, [CART_DMA_CFG]
+    and a, %00110000
+    or a, (1 << CART_DMA_CFG_STRT)
     ld [CART_DMA_CFG], a
 
     ; Loop while busy flag is asserted
