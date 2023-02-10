@@ -1,6 +1,6 @@
+include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
-include "ecgc_cart.inc"
 
 section "DMA routines", rom0
 

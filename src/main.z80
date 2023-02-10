@@ -1,6 +1,7 @@
+include "boot.inc"
+include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
-include "ecgc_cart.inc"
 
 ; Enable WishBone connection
 EFB_FLASH_ENABLE: macro
@@ -13,29 +14,6 @@ EFB_FLASH_DISABLE: macro
     xor a,a
     ld [CART_EFB_CFGCR], a
 endm
-
-; Charmap for chars used in boot (very minimalistic)
-newcharmap boot
-charmap " ", $00
-charmap "0", $01
-charmap "1", $02
-charmap "2", $03
-charmap "3", $04
-charmap "4", $05
-charmap "5", $06
-charmap "6", $07
-charmap "7", $08
-charmap "8", $09
-charmap "9", $0A
-charmap "A", $0B
-charmap "B", $0C
-charmap "C", $0D
-charmap "D", $0E
-charmap "E", $0F
-charmap "F", $10
-charmap "R", $11
-charmap "W", $12
-charmap ":", $13
 
 section "Initialisation",rom0[$0150]
 
@@ -228,6 +206,54 @@ __main::
 
     jp .frame_tick
 
+print_transaction_address_data:
+    ; Halt till next VBlank, then disable LCD
+    halt
+    nop
+    ld hl, rLCDC
+    res 7, [hl]
+
+    ; Scroll the screen
+    call scroll_history
+
+    ; Write upper address byte to screen
+    LOAD_CELL_SCRN0_HL 1, 1
+    ld a, [transaction_address+1]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+    inc hl
+
+    ; Write lower address byte to screen
+    ld a, [transaction_address]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+    inc hl
+
+    ; Print empty space
+    xor a, a
+    ld [hl+], a
+
+    ; Write data byte to screen
+    ld a, [transaction_data]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+    inc hl
+
+    ; Print empty space
+    xor a, a
+    ld [hl+], a
+
+    ret
+
 perform_read_transaction:
     ; Load transaction address to hl
     ld a, [transaction_address]
@@ -236,42 +262,15 @@ perform_read_transaction:
     ld h, a
 
     ; Perform the transaction
-    ld e, [hl]
-    push de
-    push hl
+    ld a, [hl]
+    ld [transaction_data], a
 
-    ; Scroll the screen
-    call scroll_history
-    pop hl
-    pop de
-
-    ; Write upper address byte to screen
-    ld d, h
-    call d2hex
-    ld a, b
-    ld [$9821], a
-    ld a, c
-    ld [$9822], a
-
-    ; Write lower address byte to screen
-    ld d, l
-    call d2hex
-    ld a, b
-    ld [$9823], a
-    ld a, c
-    ld [$9824], a
-
-    ; Write data byte to screen
-    ld d, e
-    call d2hex
-    ld a, b
-    ld [$9826], a
-    ld a, c
-    ld [$9827], a
+    ; Write transaction address and data to screen
+    call print_transaction_address_data
 
     ; Write 'R' to indicate read
     ld a, "R"
-    ld [$9829], a
+    ld [hl], a
 
     ; Enable LCD
     ld hl, rLCDC
@@ -285,46 +284,17 @@ perform_write_transaction:
     ld l, a
     ld a, [transaction_address+1]
     ld h, a
-    ld a, [transaction_data]
 
     ; Perform the transaction
-    ld e, a
-    ld [hl], e
-    push de
-    push hl
+    ld a, [transaction_data]
+    ld [hl], a
 
-    ; Scroll the screen
-    call scroll_history
-    pop hl
-    pop de
-
-    ; Write upper address byte to screen
-    ld d, h
-    call d2hex
-    ld a, b
-    ld [$9821], a
-    ld a, c
-    ld [$9822], a
-
-    ; Write lower address byte to screen
-    ld d, l
-    call d2hex
-    ld a, b
-    ld [$9823], a
-    ld a, c
-    ld [$9824], a
-
-    ; Write data byte to screen
-    ld d, e
-    call d2hex
-    ld a, b
-    ld [$9826], a
-    ld a, c
-    ld [$9827], a
+    ; Write transaction address and data to screen
+    call print_transaction_address_data
 
     ; Write 'W' to indicate write
     ld a, "W"
-    ld [$9829], a
+    ld [hl], a
 
     ; Enable LCD
     ld hl, rLCDC
@@ -355,43 +325,16 @@ perform_function_call:
     ld a, [transaction_data]
     call jump_to_hl
 
-    ; Scroll the screen
-    call scroll_history
+    ; Write transaction address and data to screen
+    call print_transaction_address_data
+
+    ; Write 'C' to indicate function call
+    ld a, "C"
+    ld [hl], a
 
     ; Clear cross after "Fn" on screen
     LOAD_CELL_SCRN0_HL 6,18
     dec [hl]
-
-    ; Write upper address byte to screen
-    ld a, [transaction_address+1]
-    ld d, a
-    call d2hex
-    ld a, b
-    ld [$9821], a
-    ld a, c
-    ld [$9822], a
-
-    ; Write lower address byte to screen
-    ld a, [transaction_address]
-    ld d, a
-    call d2hex
-    ld a, b
-    ld [$9823], a
-    ld a, c
-    ld [$9824], a
-
-    ; Write data byte to screen
-    ld a, [transaction_data]
-    ld d, a
-    call d2hex
-    ld a, b
-    ld [$9826], a
-    ld a, c
-    ld [$9827], a
-
-    ; Write 'C' to indicate function call
-    ld a, "C"
-    ld [$9829], a
 
     ; Enable LCD
     ld hl, rLCDC
@@ -447,13 +390,7 @@ hstr2a:
     ret
 
 ; Scroll history of transactions situated left of the screen
-scroll_history:
-    ; Halt till next VBlank, then disable LCD
-    halt
-    nop
-    ld hl, rLCDC
-    res 7, [hl]
-
+scroll_history::
     ld hl, $9A2A
     ld e, 15
 .scroll_loop:
