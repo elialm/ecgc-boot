@@ -57,6 +57,11 @@ dram_start_test::
 
     ; TODO: call test loop several times
 
+    ; Run zero write loop
+    LOAD_CELL_SCRN0_BC 4, 1
+    ld de, dram_test_zero_write
+    call dram_test_loop
+
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
     call rand_init
@@ -175,9 +180,40 @@ dram_test_random_write:
 
     jp dram_test_loop.bank_routine_ret
 
+dram_test_zero_write:
+    ; Write 0 to cart_zero
+    xor a, a
+    ld [cart_zero], a
+
+    ; Set DMA registers
+    ld a, (1 << CART_DMA_CFG_DINC)
+    ld [CART_DMA_CFG], a
+    xor a, a
+    ld [CART_DMA_DAL], a
+    ld a, $40
+    ld [CART_DMA_DAH], a
+    ld a, low(cart_zero)
+    ld [CART_DMA_SAL], a
+    ld a, high(cart_zero)
+    ld [CART_DMA_SAH], a
+
+    ; Loop dma_await to write all zero's to the bank
+    ld b, $40
+.dma_loop
+    call dma_await
+    dec b
+    jp nz, .dma_loop
+
+    jp dram_test_loop.bank_routine_ret
+
 ; Random number seed
 dram_test_rand_seed:
     db $6E
+
+section "Cartridge RAM zero", sram
+
+cart_zero:
+    ds 1
 
 section "DRAM routines variables", hram
 
