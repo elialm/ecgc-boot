@@ -5,19 +5,11 @@ include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $07FF
 DRAM_TEST_UPPER_BANK = $0010
-DRAM_TEST_RNG_BYTES_COUNT = $4000
+DRAM_TEST_BANK_SIZE = $4000
 
 section "DRAM routines", rom0
 
 dram_start_test::
-    ; Initialise loop counter
-    ldh [bank_counter], a
-    ldh [bank_counter+1], a
-
-    ; Initialise rand routine
-    ld a, [dram_test_rand_seed]
-    call rand_init
-
     ; Halt till next VBlank, then disable LCD
     halt
     nop
@@ -49,17 +41,49 @@ dram_start_test::
     ; Print write progress line
     LOAD_CELL_SCRN0_HL 1, 1
     ld a, "W"
-    ld [hl+], a
-    ld a, "B"
-    ld [hl+], a
-    inc hl
+    ld [hl], a
+
+    ; Scroll history to lower write progress line
+    call scroll_history
+
+    ; Print zero progress line
+    LOAD_CELL_SCRN0_HL 1, 1
     ld a, "0"
-    ld d, 4
-    call memset
+    ld [hl], a
 
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
+
+    ; TODO: call test loop several times
+
+    ; Initialise rand routine
+    ld a, [dram_test_rand_seed]
+    call rand_init
+
+    ; Run random write loop
+    LOAD_CELL_SCRN0_BC 4, 2
+    ld de, dram_test_random_write
+    call dram_test_loop
+
+    ret
+
+; Perform a DRAM test loop
+; This will jump to a given routine once for each DRAM bank
+; bc - screen location to update the bank counter with
+; de - pointer to bank routine
+;
+; WARNING: the bank routine must not call ret, but jp to
+; dram_test_loop.bank_routine_ret
+dram_test_loop:
+    ; Push arguments to the stack for later use
+    push bc
+    push de
+
+    ; Initialise loop counter
+    xor a, a
+    ldh [bank_counter], a
+    ldh [bank_counter+1], a
 
 .bank_loop:
     ; Set DRAM bank
@@ -69,9 +93,15 @@ dram_start_test::
     and a, %00000111
     ld [CART_DRAM_SEL1], a
 
-    ; Update screen write status
+    ; Update loop status
     LCD_DISABLE
-    LOAD_CELL_SCRN0_HL 4, 1
+
+    ; Load bank counter screen location to hl
+    ld hl, sp+2
+    ld a, [hl+]
+    ld b, a
+    ld h, [hl]
+    ld l, b
 
     ; Print bank_counter high byte
     ld a, [bank_counter+1]
@@ -92,22 +122,14 @@ dram_start_test::
 
     LCD_ENABLE
 
-    ; Set DRAM pointer
-    ld l, $00
-    ld h, $40
-
-    ; Fill bank with random data
-    ld d, high(DRAM_TEST_RNG_BYTES_COUNT)
-    ld e, low(DRAM_TEST_RNG_BYTES_COUNT)
-.rng_loop:
-    call rand
-    ld [hl+], a
-    dec de
-    xor a, a
-    cp a, d
-    jr nz, .rng_loop
-    cp a, e
-    jr nz, .rng_loop
+    ; Call bank routine pointer stored on the stack
+    ld hl, sp+0
+    ld a, [hl+]
+    ld b, a
+    ld h, [hl]
+    ld l, b
+    jp hl
+.bank_routine_ret:
 
     ; Increment bank counter and check if bank loop still needs to run
     ld hl, bank_counter
@@ -127,7 +149,31 @@ dram_start_test::
     cp a, [hl]
     jr nz, .bank_loop
 
+    ; Pop arguments from the stack
+    pop de
+    pop bc
+
     ret
+
+dram_test_random_write:
+    ; Set DRAM pointer
+    ld l, $00
+    ld h, $40
+
+    ; Fill bank with random data
+    ld d, high(DRAM_TEST_BANK_SIZE)
+    ld e, low(DRAM_TEST_BANK_SIZE)
+.rng_loop:
+    call rand
+    ld [hl+], a
+    dec de
+    xor a, a
+    cp a, d
+    jr nz, .rng_loop
+    cp a, e
+    jr nz, .rng_loop
+
+    jp dram_test_loop.bank_routine_ret
 
 ; Random number seed
 dram_test_rand_seed:
