@@ -10,6 +10,11 @@ DRAM_TEST_BANK_SIZE = $4000
 section "DRAM routines", rom0
 
 dram_start_test::
+    ; Initialise error count
+    xor a, a
+    ld [error_count], a
+    ld [error_count+1], a
+
     ; Halt till next VBlank, then disable LCD
     halt
     nop
@@ -22,6 +27,20 @@ dram_start_test::
     ld d, 9
     xor a, a
     call memset
+    call scroll_history
+
+    ; Print error count line
+    LOAD_CELL_SCRN0_HL 1, 1
+    ld a, "E"
+    ld [hl+], a
+    ld a, "C"
+    ld [hl+], a
+    inc hl
+    ld a, "0"
+    ld d, 4
+    call memset
+
+    ; Scroll history to lower error count line
     call scroll_history
 
     ; Print read progress line
@@ -78,8 +97,6 @@ dram_start_test::
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
     call rand_init
-
-    
 
     ; Run random write loop
     LOAD_CELL_SCRN0_BC 4, 2
@@ -246,7 +263,13 @@ dram_test_read_zero:
     ld a, [hl+]
     or a, a
     jr z, .skip_error_increment
+
+    ; Increment error count on screen
+    push bc
+    push hl
     call increment_error_count
+    pop hl
+    pop bc
 
 .skip_error_increment:
     ; Check whether DRAM pointer still points to 0x4000-0x7FFF
@@ -257,6 +280,38 @@ dram_test_read_zero:
     jp dram_test_loop.bank_routine_ret
 
 increment_error_count:
+    ; Increment error count
+    ld hl, error_count
+    inc [hl]
+    jr nz, .skip_high_increment
+    inc hl
+    inc [hl]
+.skip_high_increment:
+
+    LCD_DISABLE
+
+    ; Load error count screen location to hl
+    LOAD_CELL_SCRN0_HL 4, 4
+
+    ; Print error_count high byte
+    ld a, [error_count+1]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+    inc hl
+
+    ; Print error_count low byte
+    ld a, [error_count]
+    ld d, a
+    call d2hex
+    ld [hl], b
+    inc hl
+    ld [hl], c
+
+    LCD_ENABLE
+
     ret
 
 ; Random number seed
@@ -274,3 +329,5 @@ bank_counter:
     ds 2
 bank_counter_update_skip:
     ds 1
+error_count:
+    ds 2
