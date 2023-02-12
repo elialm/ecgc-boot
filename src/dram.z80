@@ -3,7 +3,7 @@ include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
 
-; DRAM_TEST_UPPER_BANK = $07FF
+; DRAM_TEST_UPPER_BANK = $0800
 DRAM_TEST_UPPER_BANK = $0010
 DRAM_TEST_BANK_SIZE = $4000
 
@@ -57,10 +57,18 @@ dram_start_test::
 
     ; TODO: call test loop several times
 
+    ; Set to only update bank counter every 256 loops
+    ld a, $01
+    ld [bank_counter_update_skip], a
+
     ; Run zero write loop
     LOAD_CELL_SCRN0_BC 4, 1
     ld de, dram_test_zero_write
     call dram_test_loop
+
+    ; Set to update bank counter every loop
+    xor a, a
+    ld [bank_counter_update_skip], a
 
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
@@ -92,12 +100,23 @@ dram_test_loop:
 
 .bank_loop:
     ; Set DRAM bank
-    ld a, [bank_counter]
-    ld [CART_DRAM_SEL0], a
     ld a, [bank_counter+1]
     and a, %00000111
     ld [CART_DRAM_SEL1], a
+    ld a, [bank_counter]
+    ld [CART_DRAM_SEL0], a
 
+    ; Check if need to skip bank update
+    ld b, a
+    ld a, [bank_counter_update_skip]
+    or a, a
+    jr z, .skip_ff_check
+    ld a, $0F
+    and a, b
+    cp a, $0F
+    jr nz, .skip_bank_update
+
+.skip_ff_check:
     ; Update loop status
     LCD_DISABLE
 
@@ -127,6 +146,7 @@ dram_test_loop:
 
     LCD_ENABLE
 
+.skip_bank_update:
     ; Call bank routine pointer stored on the stack
     ld hl, sp+0
     ld a, [hl+]
@@ -219,3 +239,5 @@ section "DRAM routines variables", hram
 
 bank_counter:
     ds 2
+bank_counter_update_skip:
+    ds 1
