@@ -4,8 +4,7 @@ include "hardware.inc"
 include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $0800
-DRAM_TEST_UPPER_BANK = $0080
-DRAM_TEST_BANK_SIZE = $4000
+DRAM_TEST_UPPER_BANK = $0010
 
 section "DRAM routines", rom0
 
@@ -74,8 +73,6 @@ dram_start_test::
     ld hl, rLCDC
     set 7, [hl]
 
-    ; TODO: call test loop several times
-
     ; Set to only update bank counter every 256 loops
     ld a, $01
     ld [bank_counter_update_skip], a
@@ -91,7 +88,7 @@ dram_start_test::
 
     ; Run zero read loop
     LOAD_CELL_SCRN0_BC 4, 3
-    ld de, dram_test_read_zero
+    ld de, dram_test_zero_read
     call dram_test_loop
 
     ; Initialise rand routine
@@ -101,6 +98,15 @@ dram_start_test::
     ; Run random write loop
     LOAD_CELL_SCRN0_BC 4, 2
     ld de, dram_test_random_write
+    call dram_test_loop
+
+    ; Initialise rand routine
+    ld a, [dram_test_rand_seed]
+    call rand_init
+
+    ; Run random read loop
+    LOAD_CELL_SCRN0_BC 4, 3
+    ld de, dram_test_random_read
     call dram_test_loop
 
     ret
@@ -206,20 +212,19 @@ dram_test_loop:
 
 dram_test_random_write:
     ; Set DRAM pointer
-    ld l, $00
-    ld h, $40
+    ld e, $00
+    ld d, $40
 
-    ; Fill bank with random data
-    ld d, high(DRAM_TEST_BANK_SIZE)
-    ld e, low(DRAM_TEST_BANK_SIZE)
+    ; Set b for high DRAM pointer check
+    ld c, $80
+
 .rng_loop:
+    ; Fill bank with random data
     call rand
-    ld [hl+], a
-    dec de
-    xor a, a
-    cp a, d
-    jr nz, .rng_loop
-    cp a, e
+    ld [de], a
+    inc de
+    ld a, d
+    cp a, c
     jr nz, .rng_loop
 
     jp dram_test_loop.bank_routine_ret
@@ -250,7 +255,7 @@ dram_test_zero_write:
 
     jp dram_test_loop.bank_routine_ret
 
-dram_test_read_zero:
+dram_test_zero_read:
     ; Set DRAM pointer
     ld l, $00
     ld h, $40
@@ -275,6 +280,38 @@ dram_test_read_zero:
     ; Check whether DRAM pointer still points to 0x4000-0x7FFF
     ld a, h
     cp a, b
+    jr nz, .read_zero_loop
+
+    jp dram_test_loop.bank_routine_ret
+
+dram_test_random_read:
+    ; Set DRAM pointer
+    ld e, $00
+    ld d, $40
+
+    ; Set b for high DRAM pointer check
+    ld c, $80
+
+.read_zero_loop:
+    ; Generate random byte, read from DRAM and check if byte is equal
+    call rand
+    ld h, a 
+    ld a, [de]
+    inc de
+    cp a, h
+    jr z, .skip_error_increment
+
+    ; Increment error count on screen
+    push bc
+    push de
+    call increment_error_count
+    pop de
+    pop bc
+
+.skip_error_increment:
+    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    ld a, d
+    cp a, c
     jr nz, .read_zero_loop
 
     jp dram_test_loop.bank_routine_ret
