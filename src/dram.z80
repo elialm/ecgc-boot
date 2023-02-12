@@ -4,7 +4,7 @@ include "hardware.inc"
 include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $0800
-DRAM_TEST_UPPER_BANK = $0010
+DRAM_TEST_UPPER_BANK = $0080
 DRAM_TEST_BANK_SIZE = $4000
 
 section "DRAM routines", rom0
@@ -70,9 +70,16 @@ dram_start_test::
     xor a, a
     ld [bank_counter_update_skip], a
 
+    ; Run zero read loop
+    LOAD_CELL_SCRN0_BC 4, 3
+    ld de, dram_test_read_zero
+    call dram_test_loop
+
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
     call rand_init
+
+    
 
     ; Run random write loop
     LOAD_CELL_SCRN0_BC 4, 2
@@ -225,6 +232,32 @@ dram_test_zero_write:
     jp nz, .dma_loop
 
     jp dram_test_loop.bank_routine_ret
+
+dram_test_read_zero:
+    ; Set DRAM pointer
+    ld l, $00
+    ld h, $40
+
+    ; Set b for high DRAM pointer check
+    ld b, $80
+
+.read_zero_loop:
+    ; Read byte and check if it's zero
+    ld a, [hl+]
+    or a, a
+    jr z, .skip_error_increment
+    call increment_error_count
+
+.skip_error_increment:
+    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    ld a, h
+    cp a, b
+    jr nz, .read_zero_loop
+
+    jp dram_test_loop.bank_routine_ret
+
+increment_error_count:
+    ret
 
 ; Random number seed
 dram_test_rand_seed:
