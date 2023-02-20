@@ -325,7 +325,7 @@ increment_error_count:
     inc [hl]
 .skip_high_increment:
 
-    LCD_DISABLE
+    LCD_AWAIT_VBLANK
 
     ; Load error count screen location to hl
     LOAD_CELL_SCRN0_HL 4, 4
@@ -346,8 +346,6 @@ increment_error_count:
     ld [hl], b
     inc hl
     ld [hl], c
-
-    LCD_ENABLE
 
     ret
 

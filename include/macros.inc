@@ -50,6 +50,12 @@ LCD_DISABLE: macro
     res 7, [hl]
 endm
 
+; Wait for V-Blank
+LCD_AWAIT_VBLANK: macro
+	halt
+    nop
+endm
+
 ; Enable the LCD
 LCD_ENABLE: macro
 	ld hl, rLCDC
