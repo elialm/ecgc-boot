@@ -4,7 +4,7 @@ include "hardware.inc"
 include "macros.inc"
 
 ; DRAM_TEST_UPPER_BANK = $0800
-DRAM_TEST_UPPER_BANK = $0010
+DRAM_TEST_UPPER_BANK = $0004
 
 section "DRAM routines", rom0
 
@@ -73,18 +73,23 @@ dram_start_test::
     ld hl, rLCDC
     set 7, [hl]
 
-    ; Set to only update bank counter every 256 loops
-    ld a, $01
-    ld [bank_counter_update_skip], a
-
-    ; Run zero write loop
-    LOAD_CELL_SCRN0_BC 4, 1
-    ld de, dram_test_zero_write
-    call dram_test_loop
+    ; ; Set to only update bank counter every 256 loops
+    ; ld a, $01
+    ; ld [bank_counter_update_skip], a
 
     ; Set to update bank counter every loop
     xor a, a
     ld [bank_counter_update_skip], a
+
+    ; Run zero write loop
+    LOAD_CELL_SCRN0_BC 4, 1
+    ; ld de, dram_test_zero_write
+    ld de, dram_test_zero_write_no_dma
+    call dram_test_loop
+
+    ; ; Set to update bank counter every loop
+    ; xor a, a
+    ; ld [bank_counter_update_skip], a
 
     ; Run zero read loop
     LOAD_CELL_SCRN0_BC 4, 3
@@ -252,6 +257,22 @@ dram_test_zero_write:
     call dma_await
     dec b
     jp nz, .dma_loop
+
+    jp dram_test_loop.bank_routine_ret
+
+dram_test_zero_write_no_dma:
+    ; Set DRAM pointer
+    ld l, $00
+    ld h, $40
+
+    ; Put $00 in a
+    xor a, a
+.write_zero_loop:
+    ld [hl+], a
+
+    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    bit 7, h
+    jr z, .write_zero_loop
 
     jp dram_test_loop.bank_routine_ret
 
