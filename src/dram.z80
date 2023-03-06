@@ -14,6 +14,9 @@ dram_start_test::
     ld [error_count], a
     ld [error_count+1], a
 
+    ; Initialise abort flag
+    ld [dram_test_abort], a
+
     ; Halt till next VBlank, then disable LCD
     halt
     nop
@@ -87,6 +90,11 @@ dram_start_test::
     ld de, dram_test_zero_write_no_dma
     call dram_test_loop
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
     ; ; Set to update bank counter every loop
     ; xor a, a
     ; ld [bank_counter_update_skip], a
@@ -95,6 +103,11 @@ dram_start_test::
     LOAD_CELL_SCRN0_BC 4, 3
     ld de, dram_test_zero_read
     call dram_test_loop
+
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
 
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
@@ -105,6 +118,11 @@ dram_start_test::
     ld de, dram_test_random_write
     call dram_test_loop
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
     ; Initialise rand routine
     ld a, [dram_test_rand_seed]
     call rand_init
@@ -114,6 +132,12 @@ dram_start_test::
     ld de, dram_test_random_read
     call dram_test_loop
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
+.abort_test:
     ret
 
 ; Perform a DRAM test loop
@@ -191,6 +215,11 @@ dram_test_loop:
     jp hl
 .bank_routine_ret:
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
     ; Increment bank counter and check if bank loop still needs to run
     ld hl, bank_counter
     inc [hl]    
@@ -208,6 +237,8 @@ dram_test_loop:
     ld a, low(DRAM_TEST_UPPER_BANK)
     cp a, [hl]
     jr nz, .bank_loop
+
+.abort_test:
 
     ; Pop arguments from the stack
     pop de
@@ -290,6 +321,11 @@ dram_test_zero_read:
     or a, a
     jr z, .skip_error_increment
 
+    ; Setup error_result
+    ld [error_result+1], a
+    xor a, a
+    ld [error_result], a
+
     ; Increment error count on screen
     push bc
     push hl
@@ -297,12 +333,18 @@ dram_test_zero_read:
     pop hl
     pop bc
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
 .skip_error_increment:
     ; Check whether DRAM pointer still points to 0x4000-0x7FFF
     ld a, h
     cp a, b
     jr nz, .read_zero_loop
 
+.abort_test:
     jp dram_test_loop.bank_routine_ret
 
 dram_test_random_read:
@@ -322,6 +364,11 @@ dram_test_random_read:
     cp a, h
     jr z, .skip_error_increment
 
+    ; Setup error_result
+    ld [error_result+1], a
+    ld a, h
+    ld [error_result], a
+
     ; Increment error count on screen
     push bc
     push de
@@ -329,12 +376,18 @@ dram_test_random_read:
     pop de
     pop bc
 
+    ; Check test abort
+    ld a, [dram_test_abort]
+    or a, a
+    jr nz, .abort_test
+
 .skip_error_increment:
     ; Check whether DRAM pointer still points to 0x4000-0x7FFF
     ld a, d
     cp a, c
     jr nz, .read_zero_loop
 
+.abort_test:
     jp dram_test_loop.bank_routine_ret
 
 increment_error_count:
@@ -345,6 +398,29 @@ increment_error_count:
     inc hl
     inc [hl]
 .skip_high_increment:
+
+    ; Setup pointer for noting exact error
+    ld hl, error_count
+    ld c, [hl]
+    inc hl
+    ld b, [hl]
+    ld hl, dram_errors
+    add hl, bc
+    add hl, bc
+    
+    ; Save error to cart dram for later retrieval
+    ld a, [error_result]
+    ld [hl+], a
+    ld a, [error_result+1]
+    ld [hl], a
+
+    ; Check error count max and abort if exeeded
+    ld a, (high(CART_RAM_SIZE) / 2)
+    cp a, b
+    jr nz, .skip_abort
+    inc a
+    ld [dram_test_abort], a
+.skip_abort
 
     LCD_AWAIT_VBLANK
 
@@ -374,6 +450,11 @@ increment_error_count:
 dram_test_rand_seed:
     db $6E
 
+section "Cartridge RAM zero", sram[CART_RAM_BASE]
+
+dram_errors:
+    ds CART_RAM_SIZE
+
 section "DRAM routines variables", hram
 
 bank_counter:
@@ -382,3 +463,7 @@ bank_counter_update_skip:
     ds 1
 error_count:
     ds 2
+error_result:
+    ds 2
+dram_test_abort:
+    ds 1

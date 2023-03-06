@@ -60,4 +60,8 @@ CART_DMA_SAH        equ (CART_DMA_BASE + $05)   ; DMA Source Address High
 CART_DMA_DAL        equ (CART_DMA_BASE + $06)   ; DMA Destination Address Low
 CART_DMA_DAH        equ (CART_DMA_BASE + $07)   ; DMA Destination Address High
 
+; Cart RAM
+CART_RAM_BASE       equ $B000
+CART_RAM_SIZE       equ $0400   ; 1kB
+
 endc    ; ECGC_CARTRIDGE_INC
