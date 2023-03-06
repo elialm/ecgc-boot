@@ -54,6 +54,7 @@ __joypad_vect:
 
 section "Start addr",rom0[$0100]
 __start:
+cart_zero::
     nop
     jp __main
 

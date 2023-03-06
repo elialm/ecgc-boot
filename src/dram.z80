@@ -374,11 +374,6 @@ increment_error_count:
 dram_test_rand_seed:
     db $6E
 
-section "Cartridge RAM zero", sram
-
-cart_zero:
-    ds 1
-
 section "DRAM routines variables", hram
 
 bank_counter:
