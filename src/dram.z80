@@ -391,14 +391,6 @@ dram_test_random_read:
     jp dram_test_loop.bank_routine_ret
 
 increment_error_count:
-    ; Increment error count
-    ld hl, error_count
-    inc [hl]
-    jr nz, .skip_high_increment
-    inc hl
-    inc [hl]
-.skip_high_increment:
-
     ; Setup pointer for noting exact error
     ld hl, error_count
     ld c, [hl]
@@ -413,6 +405,13 @@ increment_error_count:
     ld [hl+], a
     ld a, [error_result+1]
     ld [hl], a
+
+    ; Increment error count
+    inc bc
+    ld hl, error_count
+    ld [hl], c
+    inc hl
+    ld [hl], b
 
     ; Check error count max and abort if exeeded
     ld a, (high(CART_RAM_SIZE) / 2)
@@ -450,7 +449,8 @@ increment_error_count:
 dram_test_rand_seed:
     db $6E
 
-section "Cartridge RAM zero", sram[CART_RAM_BASE]
+; section "Cartridge RAM", sram[CART_RAM_BASE]
+section "DRAM routines data", wram0
 
 dram_errors:
     ds CART_RAM_SIZE
