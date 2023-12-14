@@ -3,18 +3,6 @@ include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
 
-; Enable WishBone connection
-EFB_FLASH_ENABLE: macro
-    ld a, (1 << CART_EFB_CFGCR_WBCE)
-    ld [CART_EFB_CFGCR], a
-endm
-
-; Disable WishBone connection
-EFB_FLASH_DISABLE: macro
-    xor a,a
-    ld [CART_EFB_CFGCR], a
-endm
-
 section "Initialisation",rom0[$0150]
 
 ; Initialisation
@@ -76,111 +64,6 @@ __main::
     ; Enable LCD
     ld hl, rLCDC
     set 7, [hl]
-
-    ; Initialise SPI
-    xor a, a
-    ld [CART_EFB_SPICR0], a
-    ld [CART_EFB_SPICR1], a
-    ld [CART_EFB_SPICR2], a
-
-    ; SPI prescaler
-    ;   53.2 MHz / 63 ~= 844.44 kHz
-    ld a, $3F
-    ld [CART_EFB_SPIBR], a
-    
-    ; Control register 2 values
-    ;   - [7] Set in master mode
-    ;   - [6] Hold CSS after transfer
-    ;   - [5] Disable Lattice proprietary SPI extension
-    ;   - [4] Reserved
-    ;   - [3] Reserved
-    ;   - [2] Active high clock
-    ;   - [1] Data is captured on a leading (first) clock edge, and propagated on the opposite clock edge
-    ;   - [0] Byte is sent MSB first
-    ld a, %11000000
-    ld [CART_EFB_SPICR2], a
-
-    ; Control register 1 values
-    ;   - [7] SPI enabled
-    ;   - [6] User wake-up disabled
-    ;   - [5] Enable configuration wake-up disabled
-    ;   - [4] Reserved
-    ;   - [3] Reserved
-    ;   - [2] Reserved
-    ;   - [1] Reserved
-    ;   - [0] Reserved
-    ld a, %10000000
-    ld [CART_EFB_SPICR1], a
-
-    ; ; Transmit a byte
-    ; ld a, $55
-    ; ld [CART_EFB_SPITXDR], a
-
-; 	; Code to read 1 page from UFM0
-
-;     EFB_FLASH_ENABLE
-
-;     ; Enable WishBone connection
-;     ld hl, flash_cmd_enable
-;     ld d, 4
-;     call efb_flash_write
-
-;     EFB_FLASH_DISABLE
-
-; .read_status:
-;     EFB_FLASH_ENABLE
-
-;     ; Read status
-;     ld hl, flash_cmd_status
-;     ld d, 4
-;     call efb_flash_write
-;     ld hl, flash_rdata_status
-;     ld d, 4
-;     call efb_flash_read
-
-;     EFB_FLASH_DISABLE
-
-;     ; Check for busy bit
-;     ld a, [flash_rdata_status + 2]
-;     bit 4, a
-;     jp nz, .read_status
-
-;     EFB_FLASH_ENABLE
-
-;     ; Set UFM0 address to 0
-;     ld hl, flash_cmd_set_ufm0_addr
-;     ld d, 8
-;     call efb_flash_write
-
-;     EFB_FLASH_DISABLE
-;     EFB_FLASH_ENABLE
-
-;     ; Read 1 page of data
-;     ld hl, flash_cmd_read_page
-;     ld d, 4
-;     call efb_flash_write
-;     ld hl, flash_rdata_page
-;     ld d, 16
-;     call efb_flash_read
-
-;     EFB_FLASH_DISABLE
-;     EFB_FLASH_ENABLE
-
-;     ; Disable WishBone connection
-;     ld hl, flash_cmd_disable
-;     ld d, 3
-;     call efb_flash_write
-
-;     EFB_FLASH_DISABLE
-;     EFB_FLASH_ENABLE
-
-;     ; Send NOOP (necessary after disable)
-;     ld a, $FF
-;     ld [CART_EFB_CFGTXDR], a
-
-;     EFB_FLASH_DISABLE
-
-;     ; At this point, the page data should be at flash_rdata_page
 
     ; Initialise dma_await routine
     call dma_await_init
@@ -618,52 +501,7 @@ read_buttons:
     or a, b
     ret
 
-; Write bytes to flash tx register
-;   hl - pointer to data being writtten
-;   d - number of bytes to write (must be > 0)
-efb_flash_write:
-    ld bc, CART_EFB_CFGTXDR
-.copy_loop:
-    ld a, [hl+]
-    ld [bc], a
-    dec d
-    
-    jp nz, .copy_loop
-    ret
-
-; Read bytes from flash rx register
-;   hl - pointer to writable memory to store the read data
-;   d - number of bytes to read (must be > 0)
-efb_flash_read:
-    ld bc, CART_EFB_CFGRXDR
-.copy_loop:
-    ld a, [bc]
-    ld [hl+], a
-    dec d
-    
-    jp nz, .copy_loop
-    ret
-
-section "Contant data",rom0
-
-flash_cmd_enable:
-    db $74,$08,$00,$00
-flash_cmd_status:
-    db $3C,$00,$00,$00
-flash_cmd_set_ufm0_addr:
-    db $B4,$00,$00,$00
-    db $00,$00,$40,$00
-flash_cmd_read_page:
-    db $CA,$00,$00,$01
-flash_cmd_disable:
-    db $26,$00,$00
-
-; Temporary test data
-flash_rdata_page_rom:
-    db $26,$EF,$72,$DE
-    db $92,$EF,$72,$DA
-    db $26,$40,$72,$ED
-    db $2B,$00,$72,$00
+section "Constant data",rom0
 
 cursor_locations:
     db $0F,$10,$11,$12,$51,$52
