@@ -25,7 +25,7 @@ TARGET=$(NAME).gb
 
 .PHONY: all clean mem
 
-all: $(BUILD_DIR) $(OBJ_DIR) $(BUILD_DIR)/$(TARGET)
+all: $(BUILD_DIR) $(OBJ_DIR) $(BUILD_DIR)/$(TARGET) $(BUILD_DIR)/$(NAME).mem
 
 mem: $(BUILD_DIR)/$(NAME).mem
 
@@ -41,7 +41,7 @@ $(BUILD_DIR)/$(TARGET): $(OBJ_FILES)
 	@./scripts/calculate_usage.sh $(BUILD_DIR)/$(NAME).map
 
 $(BUILD_DIR)/$(NAME).mem: $(BUILD_DIR)/$(TARGET)
-	./scripts/make_hex.sh $< $@
+	@./scripts/make_hex.sh $< $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.z80
 	$(AS) $(AS_FLAGS) $< -o $@
