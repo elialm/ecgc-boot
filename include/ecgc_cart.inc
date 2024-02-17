@@ -5,11 +5,15 @@
 if !def(ECGC_CARTRIDGE_INC)
 ECGC_CARTRIDGE_INC = 1
 
-; DRAM Bank Selection 0
-CART_DRAM_SEL0      equ $A200
+; MBCH Control 0
+CART_MBCH_CTRL0     equ $A100
 
-; DRAM Bank Selection 1
-CART_DRAM_SEL1      equ $A300
+; XRAM Control 0
+CART_XRAM_CTRL0     equ $A200
+CART_XRAM_CTRL0_CRE equ 0
+
+; XRAM Control 1
+CART_XRAM_CTRL1      equ $A300
 
 ; DMA Base address
 CART_DMA_BASE       equ $A500
@@ -31,6 +35,6 @@ CART_DMA_DAH        equ (CART_DMA_BASE + $07)   ; DMA Destination Address High
 
 ; Cart RAM
 CART_RAM_BASE       equ $B000
-CART_RAM_SIZE       equ $0400   ; 1kB
+CART_RAM_SIZE       equ $0800   ; 2kB
 
 endc    ; ECGC_CARTRIDGE_INC

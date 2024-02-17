@@ -161,9 +161,9 @@ dram_test_loop:
     ; Set DRAM bank
     ld a, [bank_counter+1]
     and a, %00000111
-    ld [CART_DRAM_SEL1], a
+    ld [CART_XRAM_CTRL1], a
     ld a, [bank_counter]
-    ld [CART_DRAM_SEL0], a
+    ld [CART_XRAM_CTRL0], a
 
     ; Check if need to skip bank update
     ld b, a

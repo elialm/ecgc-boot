@@ -6,3 +6,6 @@
 # Build directories
 obj
 build
+
+# IDE filed
+.vscode
