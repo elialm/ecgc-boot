@@ -3,19 +3,19 @@ include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
 
-; DRAM_TEST_UPPER_BANK = $0800
-DRAM_TEST_UPPER_BANK = $0004
+; XRAM_TEST_UPPER_BANK = $0800
+XRAM_TEST_UPPER_BANK = $0004
 
-section "DRAM routines", rom0
+section "XRAM routines", rom0
 
-dram_start_test::
+xram_start_test::
     ; Initialise error count
     xor a, a
     ld [error_count], a
     ld [error_count+1], a
 
     ; Initialise abort flag
-    ld [dram_test_abort], a
+    ld [xram_test_abort], a
 
     ; Halt till next VBlank, then disable LCD
     halt
@@ -86,12 +86,12 @@ dram_start_test::
 
     ; Run zero write loop
     LOAD_CELL_SCRN0_BC 4, 1
-    ; ld de, dram_test_zero_write
-    ld de, dram_test_zero_write_no_dma
-    call dram_test_loop
+    ; ld de, xram_test_zero_write
+    ld de, xram_test_zero_write_no_dma
+    call xram_test_loop
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
@@ -101,53 +101,53 @@ dram_start_test::
 
     ; Run zero read loop
     LOAD_CELL_SCRN0_BC 4, 3
-    ld de, dram_test_zero_read
-    call dram_test_loop
+    ld de, xram_test_zero_read
+    call xram_test_loop
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
     ; Initialise rand routine
-    ld a, [dram_test_rand_seed]
+    ld a, [xram_test_rand_seed]
     call rand_init
 
     ; Run random write loop
     LOAD_CELL_SCRN0_BC 4, 2
-    ld de, dram_test_random_write
-    call dram_test_loop
+    ld de, xram_test_random_write
+    call xram_test_loop
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
     ; Initialise rand routine
-    ld a, [dram_test_rand_seed]
+    ld a, [xram_test_rand_seed]
     call rand_init
 
     ; Run random read loop
     LOAD_CELL_SCRN0_BC 4, 3
-    ld de, dram_test_random_read
-    call dram_test_loop
+    ld de, xram_test_random_read
+    call xram_test_loop
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
 .abort_test:
     ret
 
-; Perform a DRAM test loop
-; This will jump to a given routine once for each DRAM bank
+; Perform a XRAM test loop
+; This will jump to a given routine once for each XRAM bank
 ; bc - screen location to update the bank counter with
 ; de - pointer to bank routine
 ;
 ; WARNING: the bank routine must not call ret, but jp to
-; dram_test_loop.bank_routine_ret
-dram_test_loop:
+; xram_test_loop.bank_routine_ret
+xram_test_loop:
     ; Push arguments to the stack for later use
     push bc
     push de
@@ -158,7 +158,7 @@ dram_test_loop:
     ldh [bank_counter+1], a
 
 .bank_loop:
-    ; Set DRAM bank
+    ; Set XRAM bank
     ld a, [bank_counter+1]
     and a, %00000111
     ld [CART_XRAM_CTRL1], a
@@ -216,7 +216,7 @@ dram_test_loop:
 .bank_routine_ret:
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
@@ -230,11 +230,11 @@ dram_test_loop:
 .skip_upper_inc:
     ; incremented bank counter is stored to ram
     inc hl
-    ld a, high(DRAM_TEST_UPPER_BANK)
+    ld a, high(XRAM_TEST_UPPER_BANK)
     cp a, [hl]
     jr nz, .bank_loop
     dec hl
-    ld a, low(DRAM_TEST_UPPER_BANK)
+    ld a, low(XRAM_TEST_UPPER_BANK)
     cp a, [hl]
     jr nz, .bank_loop
 
@@ -246,12 +246,12 @@ dram_test_loop:
 
     ret
 
-dram_test_random_write:
-    ; Set DRAM pointer
+xram_test_random_write:
+    ; Set XRAM pointer
     ld e, $00
     ld d, $40
 
-    ; Set b for high DRAM pointer check
+    ; Set b for high XRAM pointer check
     ld c, $80
 
 .rng_loop:
@@ -263,9 +263,9 @@ dram_test_random_write:
     cp a, c
     jr nz, .rng_loop
 
-    jp dram_test_loop.bank_routine_ret
+    jp xram_test_loop.bank_routine_ret
 
-dram_test_zero_write:
+xram_test_zero_write:
     ; Write 0 to cart_zero
     xor a, a
     ld [cart_zero], a
@@ -289,10 +289,10 @@ dram_test_zero_write:
     dec b
     jp nz, .dma_loop
 
-    jp dram_test_loop.bank_routine_ret
+    jp xram_test_loop.bank_routine_ret
 
-dram_test_zero_write_no_dma:
-    ; Set DRAM pointer
+xram_test_zero_write_no_dma:
+    ; Set XRAM pointer
     ld l, $00
     ld h, $40
 
@@ -301,18 +301,18 @@ dram_test_zero_write_no_dma:
 .write_zero_loop:
     ld [hl+], a
 
-    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    ; Check whether XRAM pointer still points to 0x4000-0x7FFF
     bit 7, h
     jr z, .write_zero_loop
 
-    jp dram_test_loop.bank_routine_ret
+    jp xram_test_loop.bank_routine_ret
 
-dram_test_zero_read:
-    ; Set DRAM pointer
+xram_test_zero_read:
+    ; Set XRAM pointer
     ld l, $00
     ld h, $40
 
-    ; Set b for high DRAM pointer check
+    ; Set b for high XRAM pointer check
     ld b, $80
 
 .read_zero_loop:
@@ -334,29 +334,29 @@ dram_test_zero_read:
     pop bc
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
 .skip_error_increment:
-    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    ; Check whether XRAM pointer still points to 0x4000-0x7FFF
     ld a, h
     cp a, b
     jr nz, .read_zero_loop
 
 .abort_test:
-    jp dram_test_loop.bank_routine_ret
+    jp xram_test_loop.bank_routine_ret
 
-dram_test_random_read:
-    ; Set DRAM pointer
+xram_test_random_read:
+    ; Set XRAM pointer
     ld e, $00
     ld d, $40
 
-    ; Set b for high DRAM pointer check
+    ; Set b for high XRAM pointer check
     ld c, $80
 
 .read_zero_loop:
-    ; Generate random byte, read from DRAM and check if byte is equal
+    ; Generate random byte, read from XRAM and check if byte is equal
     call rand
     ld h, a 
     ld a, [de]
@@ -377,18 +377,18 @@ dram_test_random_read:
     pop bc
 
     ; Check test abort
-    ld a, [dram_test_abort]
+    ld a, [xram_test_abort]
     or a, a
     jr nz, .abort_test
 
 .skip_error_increment:
-    ; Check whether DRAM pointer still points to 0x4000-0x7FFF
+    ; Check whether XRAM pointer still points to 0x4000-0x7FFF
     ld a, d
     cp a, c
     jr nz, .read_zero_loop
 
 .abort_test:
-    jp dram_test_loop.bank_routine_ret
+    jp xram_test_loop.bank_routine_ret
 
 increment_error_count:
     ; Setup pointer for noting exact error
@@ -396,11 +396,11 @@ increment_error_count:
     ld c, [hl]
     inc hl
     ld b, [hl]
-    ld hl, dram_errors
+    ld hl, xram_errors
     add hl, bc
     add hl, bc
     
-    ; Save error to cart dram for later retrieval
+    ; Save error to cart xram for later retrieval
     ld a, [error_result]
     ld [hl+], a
     ld a, [error_result+1]
@@ -418,7 +418,7 @@ increment_error_count:
     cp a, b
     jr nz, .skip_abort
     inc a
-    ld [dram_test_abort], a
+    ld [xram_test_abort], a
 .skip_abort
 
     LCD_AWAIT_VBLANK
@@ -446,16 +446,16 @@ increment_error_count:
     ret
 
 ; Random number seed
-dram_test_rand_seed:
+xram_test_rand_seed:
     db $6E
 
 ; section "Cartridge RAM", sram[CART_RAM_BASE]
-section "DRAM routines data", wram0
+section "XRAM routines data", wram0
 
-dram_errors:
+xram_errors:
     ds CART_RAM_SIZE
 
-section "DRAM routines variables", hram
+section "XRAM routines variables", hram
 
 bank_counter:
     ds 2
@@ -465,5 +465,5 @@ error_count:
     ds 2
 error_result:
     ds 2
-dram_test_abort:
+xram_test_abort:
     ds 1
