@@ -3,8 +3,8 @@ include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
 
-; XRAM_TEST_UPPER_BANK = $0800
-XRAM_TEST_UPPER_BANK = $0004
+XRAM_TEST_UPPER_BANK = $0400
+; XRAM_TEST_UPPER_BANK = $0004
 
 section "XRAM routines", rom0
 
@@ -160,10 +160,10 @@ xram_test_loop:
 .bank_loop:
     ; Set XRAM bank
     ld a, [bank_counter+1]
-    and a, %00000111
-    ld [CART_XRAM_CTRL1], a
-    ld a, [bank_counter]
+    and a, %00000011
     ld [CART_XRAM_CTRL0], a
+    ld a, [bank_counter]
+    ld [CART_XRAM_CTRL1], a
 
     ; Check if need to skip bank update
     ld b, a
