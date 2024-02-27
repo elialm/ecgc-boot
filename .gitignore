@@ -7,5 +7,8 @@
 obj
 build
 
+# Test artifacts
+dump
+
 # IDE filed
 .vscode
