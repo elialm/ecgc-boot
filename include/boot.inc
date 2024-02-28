@@ -3,7 +3,7 @@
 ;*
 
 if !def(ECGC_BOOT_INC)
-ECGC_BOOT_INC = 1
+def ECGC_BOOT_INC = 1
 
 ; Charmap for chars used in boot (very minimalistic)
 newcharmap boot

@@ -3,8 +3,8 @@ include "ecgc_cart.inc"
 include "hardware.inc"
 include "macros.inc"
 
-XRAM_TEST_UPPER_BANK = $0400
-; XRAM_TEST_UPPER_BANK = $0004
+def XRAM_TEST_UPPER_BANK = $0400
+; def XRAM_TEST_UPPER_BANK = $0004
 
 section "XRAM routines", rom0
 
