@@ -1,0 +1,95 @@
+include "ecgc_cart.inc"
+include "crash.inc"
+
+; Include compilation of chip select values
+; If a value does not only select 1 chip, it will crash
+def SPI_CHECK_CS = 1
+
+section "SPI routines", rom0
+
+; Initialise SPI firmware
+;   a - value to be loaded to CART_SPI_CTRL
+;   b - value to be loaded to CART_SPI_FDIV
+spi_init::
+    ; Initialise firmware
+    ld [CART_SPI_CTRL], a
+    ld a, b
+    ld [CART_SPI_FDIV], a
+
+    ret
+
+; De-initialise SPI firmware
+spi_deinit::
+    ; Disable core and clear FDIV
+    xor a, a
+    ld [CART_SPI_CTRL], a
+    ld [CART_SPI_FDIV], a
+
+    ; Clear done bit if asserted
+    ld a, [CART_SPI_DATA]
+
+    ret
+
+; Write value over SPI bus and read response when DONE bit is set
+;   a - value to write
+;
+;   a - will contain the value read back
+spi_write::
+    ; Write over SPI
+    ld [CART_SPI_DATA], a
+
+    ; Wait for the DONE bit to be asserted
+.check_done:
+    ld a, [CART_SPI_CTRL]
+    bit CART_SPI_CTRL_DONE, a
+    jr z, .check_done
+
+    ; Read SPI data
+    ld a, [CART_SPI_DATA]
+
+    ret
+
+; Write value over SPI bus and read response without checking DONE bit.
+; Only to be used if the SPI communication is so fast that checking it is redundant.
+;   a - value to write
+;
+;   a - will contain the value read back
+spi_write_fast::
+    ; Write over SPI and read back data
+    ld [CART_SPI_DATA], a
+    ld a, [CART_SPI_DATA]
+
+    ret
+
+; Select a given device to communicate with over SPI
+; If SPI_CHECK_CS is defined, it will also check if more than one device
+; is selected and crash if that is the case.
+;   a - value to write to CART_SPI_CS
+spi_select::
+    if def(SPI_CHECK_CS)
+    
+    ; Check value inside a
+    ld b, a
+    cp a
+    ld c, a
+    dec c
+    and a, c
+    ld a, b
+    jr z, .valid_cs
+    ld a, CRASH_SPI_INVALID_CS
+    rst $38
+
+    endc
+
+    ; Valid value in a, so write to CART_SPI_CS
+.valid_cs:
+    ld [CART_SPI_CS], a
+
+    ret
+
+; Deselect all SPI chips
+spi_deselect::
+    ld a, $FF
+    ld [CART_SPI_CS], a
+
+    ret
