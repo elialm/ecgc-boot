@@ -1,4 +1,4 @@
-STACK_SIZE  equ 256 
+def STACK_SIZE equ 256 
 
 section "Reset routine rst_00",rom0[$0000]
 __rst_00:

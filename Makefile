@@ -17,7 +17,7 @@ AS=rgbasm
 LD=rgblink
 FX=rgbfix
 
-AS_FLAGS= -iinclude
+AS_FLAGS= -Iinclude
 LD_FLAGS= -n $(BUILD_DIR)/$(NAME).sym -m $(BUILD_DIR)/$(NAME).map
 FX_FLAGS= -v -p 0 -C
 

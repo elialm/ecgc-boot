@@ -189,16 +189,10 @@ perform_function_call:
     ; Halt till next VBlank, then disable LCD
     halt
     nop
-    ld hl, rLCDC
-    res 7, [hl]
 
     ; Display cross after "Fn" on screen
     LOAD_CELL_SCRN0_HL 6,18
     inc [hl]
-
-    ; Enable LCD
-    ld hl, rLCDC
-    set 7, [hl]
 
     ; Jump to selected address
     ld a, [transaction_address]
@@ -207,6 +201,12 @@ perform_function_call:
     ld h, a
     ld a, [transaction_data]
     call jump_to_hl
+
+    ; Halt till next VBlank, then disable LCD
+    halt
+    nop
+    ld hl, rLCDC
+    res 7, [hl]
 
     ; Write transaction address and data to screen
     call print_transaction_address_data
@@ -228,7 +228,6 @@ perform_function_call:
 ; Jump to the address pointed to by hl
 jump_to_hl:
     jp hl
-    ret
 
 perform_long_workload:
     ldh a, [transaction_data]
