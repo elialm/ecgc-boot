@@ -1,0 +1,37 @@
+include "crash.inc"
+
+section "SD routines", rom0
+
+; Calculate CRC7 of given buffer
+;   hl - pointer to start of buffer
+;   b - length of buffer (0 = buffer length of 256 bytes)
+;
+;   a - will contain the computed CRC7 value with LSB being 0
+sd_calculate_crc7:
+    ; initialise crc and polynom
+    xor a, a
+    ld d, %10001001
+
+    ; xor data and update data pointer
+.data_loop:
+    xor a, [hl]
+    inc hl
+
+    ; loop through bits and perform xor shifts
+    ld c, 8
+.byte_loop:
+    bit 7, a
+    jr z, .skip_xor
+    xor a, d
+.skip_xor:
+    sla a
+
+    ; byte loop check
+    dec c
+    jr nz, .byte_loop
+
+    ; data loop check
+    dec b
+    jr nz, .data_loop
+
+    ret 

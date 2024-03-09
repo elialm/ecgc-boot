@@ -1,0 +1,29 @@
+sp = "stack_top"
+crash = 0x0038
+caller = "__start"
+exit = "__start"
+enable-breakpoints = true
+
+[sd_calculate_crc7-0]
+pc = "sd_calculate_crc7"
+hl = "xram_errors"
+b = 5
+"[xram_errors]" = [ 0x40, 0x00, 0x00, 0x00, 0x00 ]
+[sd_calculate_crc7-0.result]
+a = 0b10010100
+
+[sd_calculate_crc7-1]
+pc = "sd_calculate_crc7"
+hl = "xram_errors"
+b = 5
+"[xram_errors]" = [ 0x51, 0x00, 0x00, 0x00, 0x00 ]
+[sd_calculate_crc7-1.result]
+a = 0b01010100
+
+[sd_calculate_crc7-2]
+pc = "sd_calculate_crc7"
+hl = "xram_errors"
+b = 5
+"[xram_errors]" = [ 0x11, 0x00, 0x00, 0x09, 0x00 ]
+[sd_calculate_crc7-2.result]
+a = 0b01100110
