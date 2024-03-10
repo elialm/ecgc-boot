@@ -7,11 +7,11 @@ section "Initialisation",rom0[$0150]
 
 ; Initialisation
 __main::
-    di                  ; Disable interrupts
-    ld sp, stack_top    ; Initialise stack pointer
+    di              ; Disable interrupts
+    ld sp, $D000    ; Initialise stack pointer
 
     ld a, $01
-    ld [rIE], a         ; Enable VBL interrupt
+    ld [rIE], a     ; Enable VBL interrupt
     ei
 
     ; Disable LCD

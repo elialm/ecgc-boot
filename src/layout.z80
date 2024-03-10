@@ -64,7 +64,5 @@ ds $4B, $00
     ;   Header data provided by rgbfix
     ;   ================================
 
-section "Stack",wram0[$CFFF-(STACK_SIZE-1)]
-ds STACK_SIZE-1
-stack_top::
-ds 1
+section "Stack",wram0[$D000-STACK_SIZE]
+ds STACK_SIZE

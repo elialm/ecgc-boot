@@ -92,3 +92,41 @@ sd_calculate_crc16::
 ; excludes x^16, since its result is always 0 and does not fit inside 2 registers 
 .polynomial:
     dw %0001000000100001
+
+
+; Build command for SD card
+;   a - contains command index (must be 6-bits long, upper bits will be masked off)
+;   bc - contains pointer to command buffer (must be at least 5 bytes)
+;   [sp+2] - contains lower 16 bits of command arg
+;   [sp+4] - contains upper 16 bits of command arg
+sd_build_cmd::
+    ; set start bit, transmission bit and command index to appropriate values
+    and a, %00111111
+    set 6, a
+    ld [bc], a
+    inc bc
+
+    ; set command arg
+    ld hl, sp+4
+    ld a, [hl-]
+    ld [bc], a
+    inc bc
+    ld a, [hl-]
+    ld [bc], a
+    inc bc
+    ld a, [hl-]
+    ld [bc], a
+    inc bc
+    ld a, [hl-]
+    ld [bc], a
+    inc bc
+    push bc
+
+    ; calculate CRC
+    ld hl, sp-1
+    ld b, 5
+    call sd_calculate_crc7
+    set 0, a
+    ld [bc], a
+
+    ret

@@ -1,4 +1,4 @@
-sp = "stack_top"
+sp = 0xD000
 crash = 0x0038
 caller = "__start"
 exit = "__start"
