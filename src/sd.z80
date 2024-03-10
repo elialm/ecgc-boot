@@ -2,12 +2,13 @@ include "crash.inc"
 
 section "SD routines", rom0
 
-; Calculate CRC7 of given buffer
+; Calculate CRC7 of given buffer.
+; Uses the SD card polynomial G(x) = x^7 + x^3 + 1.
 ;   hl - pointer to start of buffer
 ;   b - length of buffer (0 = buffer length of 256 bytes)
 ;
 ;   a - will contain the computed CRC7 value with LSB being 0
-sd_calculate_crc7:
+sd_calculate_crc7::
     ; initialise crc and polynom
     xor a, a
     ld d, %10001001
@@ -35,3 +36,59 @@ sd_calculate_crc7:
     jr nz, .data_loop
 
     ret 
+
+
+; Calculate CRC16 of a given buffer
+; Uses the SD card polynomial G(x) = x^16 + x^12 + x^5 + 1.
+;   hl - pointer to start of buffer
+;   bc - length of buffer (0 = buffer length of 2^16 bytes)
+;
+;   de - will contain the computed CRC16 value
+sd_calculate_crc16::
+    ; initialise crc and polynom
+    xor a, a
+    ld d, a
+    ld e, a
+
+    ; xor data and update data pointer
+.data_loop:
+    ld a, [hl+]
+    xor a, d
+    ld d, a
+    push bc
+
+    ; loop through bits and perform xor shifts
+    ld c, 8
+.byte_loop:
+    rl e    ; shift MSB into C and shift in a zero (C has to be zero)
+    rl d    ; shift MSB of e into d and put MSB of d into C
+    jr nc, .skip_xor    ; only xor if a 1 has been shifted out (into C)
+
+    ; xor de with polynomial
+    ld a, [.polynomial]
+    xor a, e
+    ld e, a
+    ld a, [.polynomial+1]
+    xor a, d
+    ld d, a
+.skip_xor:
+
+    ; byte loop check
+    dec c
+    jr nz, .byte_loop
+
+    ; data loop check
+    pop bc
+    dec bc
+    xor a, a
+    cp a, c
+    jr nz, .data_loop
+    cp a, b
+    jr nz, .data_loop
+
+    ret
+
+; CRC16 polynomial
+; excludes x^16, since its result is always 0 and does not fit inside 2 registers 
+.polynomial:
+    dw %0001000000100001
