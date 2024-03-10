@@ -76,8 +76,7 @@ spi_select::
     and a, c
     ld a, b
     jr z, .valid_cs
-    ld a, CRASH_SPI_INVALID_CS
-    rst $38
+    CRASH_WITH CRASH_SPI_INVALID_CS
 
     endc
 
