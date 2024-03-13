@@ -67,3 +67,11 @@ bc = 512
 timeout = 100000
 [sd_calculate_crc16-0.result]
 de = 0x7FA1
+
+[sd_build_cmd-0]
+pc = "sd_build_cmd"
+a = 0
+bc = 0xC000
+stack = [ 0x00, 0x00, 0x00, 0x00 ]
+[sd_build_cmd-0.result]
+"[0xC000]" = [ 0x40, 0x00, 0x00, 0x00, 0x00, 0x95 ]

@@ -96,10 +96,13 @@ sd_calculate_crc16::
 
 ; Build command for SD card
 ;   a - contains command index (must be 6-bits long, upper bits will be masked off)
-;   bc - contains pointer to command buffer (must be at least 5 bytes)
-;   [sp+2] - contains lower 16 bits of command arg
-;   [sp+4] - contains upper 16 bits of command arg
+;   bc - contains pointer to command buffer (must be at least 6 bytes)
+;   [sp+2] - contains command arg in little endian format
 sd_build_cmd::
+    ; keep copy of start of buffer pointer
+    ld d, b
+    ld e, c
+
     ; set start bit, transmission bit and command index to appropriate values
     and a, %00111111
     set 6, a
@@ -107,7 +110,7 @@ sd_build_cmd::
     inc bc
 
     ; set command arg
-    ld hl, sp+4
+    ld hl, sp+5
     ld a, [hl-]
     ld [bc], a
     inc bc
@@ -123,10 +126,12 @@ sd_build_cmd::
     push bc
 
     ; calculate CRC
-    ld hl, sp-1
+    ld h, d
+    ld l, e    
     ld b, 5
     call sd_calculate_crc7
     set 0, a
+    pop bc
     ld [bc], a
 
     ret
