@@ -12,7 +12,7 @@ It also has the necessary symbols for the Gameboy to successfully boot
 
 The boot code is developed using the [RGBDS](https://rgbds.gbdev.io/) toolchain.
 It is a collection of tools for compiling and linking Gameboy assembly.
-At the time of writing, v0.7.0 was the version use to compile.
+At the time of writing, v0.9.0 was the version use to compile.
 Keep in mind that using other versions might break the code.
 
 To build the code, just run the `Makefile` as such in a bash terminal:
