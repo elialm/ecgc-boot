@@ -19,16 +19,15 @@ FX=rgbfix
 
 AS_FLAGS= -Iinclude
 LD_FLAGS= -n $(BUILD_DIR)/$(NAME).sym -m $(BUILD_DIR)/$(NAME).map
-FX_FLAGS= -v -p 0 -C
+FX_FLAGS= -v -p 0
 
 RM=rm
 
-TARGET=$(NAME).gbc
+TARGET=$(NAME).gb
 
-.PHONY: all clean
+.PHONY: all clean test hex
 
-all: $(BUILD_DIR) $(OBJ_DIR) $(BUILD_DIR)/$(TARGET)
-	$(FX) $(FX_FLAGS) $(BUILD_DIR)/$(TARGET)
+all: $(BUILD_DIR)/$(TARGET)
 
 $(OBJ_DIR):
 	mkdir -p $@
@@ -36,10 +35,11 @@ $(OBJ_DIR):
 $(BUILD_DIR):
 	mkdir -p $@
 
-$(BUILD_DIR)/$(TARGET): $(OBJ_FILES)
-	$(LD) $(LD_FLAGS) $^ -o $@
+$(BUILD_DIR)/$(TARGET): $(BUILD_DIR) $(OBJ_FILES)
+	$(LD) $(LD_FLAGS) $(filter %.o,$^) -o $@
+	$(FX) $(FX_FLAGS) $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.z80
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.z80 $(OBJ_DIR)
 	$(AS) $(AS_FLAGS) $< -o $@
 
 clean:
@@ -51,3 +51,8 @@ test: $(BUILD_DIR)/$(TARGET)
 		evunit -c $$file -d dump -n $(BUILD_DIR)/$(NAME).sym $(BUILD_DIR)/$(TARGET); \
 		echo; \
 	done
+
+$(BUILD_DIR)/$(NAME).mem: $(BUILD_DIR)/$(TARGET)
+	@./scripts/make_hex.sh $< $@
+
+hex: $(BUILD_DIR)/$(NAME).mem
